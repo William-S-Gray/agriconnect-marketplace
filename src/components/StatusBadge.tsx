@@ -1,6 +1,6 @@
-import { CheckCircle, Clock, AlertTriangle, XCircle, Truck, Package } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, XCircle, Truck, Package, Leaf } from 'lucide-react';
 
-type BadgeType = 'verified' | 'pending' | 'in-season' | 'limited' | 'sold-out' |
+type BadgeType = 'verified' | 'pending' | 'in-season' | 'limited' | 'sold-out' | 'organic' |
   'order-pending' | 'confirmed' | 'in-transit' | 'delivered' | 'completed' | 'disputed' | 'cancelled';
 
 const config: Record<BadgeType, { label: string; className: string; icon?: React.ElementType }> = {

@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-card border-r border-border p-4 shrink-0">
+      <aside className="hidden md:flex flex-col w-64 neo-flat rounded-none p-4 shrink-0">
         <div className="flex items-center gap-2 mb-8 px-2">
           <Shield className="h-6 w-6 text-primary" />
           <span className="font-heading text-lg font-bold">Admin Panel</span>

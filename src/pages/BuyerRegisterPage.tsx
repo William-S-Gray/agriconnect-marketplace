@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Leaf } from 'lucide-react';
+import { passwordPolicy } from '@/lib/password-policy';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

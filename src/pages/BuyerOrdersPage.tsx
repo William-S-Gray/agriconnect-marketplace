@@ -14,11 +14,11 @@ const statusMap: Record<string, 'order-pending' | 'confirmed' | 'in-season' | 'v
 };
 
 const BuyerOrdersPage = () => {
-  const { buyer, isAuthenticated } = useBuyerAuth();
+  const { isAuthenticated } = useBuyerAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState('all');
 
-  if (!isAuthenticated) { navigate('/buyer/login'); return null; }
+  if (!isAuthenticated) { navigate('/login'); return null; }
 
   const orders = getOrdersByBuyer('b1');
   const filtered = tab === 'all' ? orders : orders.filter(o => o.status === tab);
@@ -30,7 +30,7 @@ const BuyerOrdersPage = () => {
         <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-6">My Orders</h1>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 neo-flat">
             <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
             <TabsTrigger value="PENDING">Pending</TabsTrigger>
             <TabsTrigger value="COMPLETED">Completed</TabsTrigger>
@@ -39,7 +39,7 @@ const BuyerOrdersPage = () => {
 
         <div className="space-y-4">
           {filtered.map(order => (
-            <div key={order.id} className="bg-card border border-border rounded-xl p-5">
+            <div key={order.id} className="neo-card p-5">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="font-heading font-semibold text-foreground">{order.produce_title}</p>
@@ -48,9 +48,9 @@ const BuyerOrdersPage = () => {
                 <StatusBadge type={statusMap[order.status] || 'pending'} />
               </div>
               <div className="grid grid-cols-3 gap-3 text-sm mb-4">
-                <div><span className="text-muted-foreground">Qty:</span> <span className="font-mono">{order.quantity}</span></div>
+                <div><span className="text-muted-foreground">Qty:</span> <span className="font-mono text-foreground">{order.quantity}</span></div>
                 <div><span className="text-muted-foreground">Total:</span> <span className="font-mono price-display">${order.total_amount.toFixed(2)}</span></div>
-                <div><span className="text-muted-foreground">Delivery:</span> {order.delivery_method}</div>
+                <div><span className="text-muted-foreground">Delivery:</span> <span className="text-foreground">{order.delivery_method}</span></div>
               </div>
               <OrderTimeline status={order.status} />
             </div>

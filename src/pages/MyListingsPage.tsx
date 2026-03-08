@@ -18,7 +18,7 @@ const MyListingsPage = () => {
   const { farmer, logout } = useFarmerAuth();
   const navigate = useNavigate();
 
-  if (!farmer) { navigate('/farmer/login'); return null; }
+  if (!farmer) { navigate('/login'); return null; }
 
   const listings = getListingsByFarmer(farmer.id);
 
@@ -29,7 +29,7 @@ const MyListingsPage = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-heading text-2xl font-bold text-foreground">My Listings</h1>
           <Link to="/farm/listings/new">
-            <Button className="bg-primary text-primary-foreground"><Plus className="h-4 w-4 mr-1" />New Listing</Button>
+            <Button className="neo-btn bg-primary text-primary-foreground"><Plus className="h-4 w-4 mr-1" />New Listing</Button>
           </Link>
         </div>
 
@@ -41,7 +41,7 @@ const MyListingsPage = () => {
         ) : (
           <div className="space-y-4">
             {listings.map(l => (
-              <div key={l.id} className="bg-card border border-border rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div key={l.id} className="neo-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-heading font-semibold text-foreground">{l.title}</h3>
@@ -53,9 +53,9 @@ const MyListingsPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><Eye className="h-3 w-3" />{l.views_count}</span>
-                  <Link to={`/listing/${l.id}`}><Button size="sm" variant="outline"><Eye className="h-3 w-3 mr-1" />View</Button></Link>
-                  <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
-                  <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10"><Trash2 className="h-3 w-3" /></Button>
+                  <Link to={`/listing/${l.id}`}><Button size="sm" variant="outline" className="neo-flat border-none"><Eye className="h-3 w-3 mr-1" />View</Button></Link>
+                  <Button size="sm" variant="outline" className="neo-flat border-none"><Edit className="h-3 w-3 mr-1" />Edit</Button>
+                  <Button size="sm" variant="outline" className="neo-flat border-none text-destructive hover:bg-destructive/10"><Trash2 className="h-3 w-3" /></Button>
                 </div>
               </div>
             ))}

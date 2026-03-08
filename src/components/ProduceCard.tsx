@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Truck, Package } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PriceTag } from '@/components/PriceTag';
+import { LazyImage } from '@/components/LazyImage';
 import type { ProduceListing } from '@/lib/mock-data';
 
 interface ProduceCardProps {

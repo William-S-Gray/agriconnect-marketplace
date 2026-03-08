@@ -267,7 +267,7 @@ const AdminDashboard = () => {
             <h1 className="font-heading text-2xl font-bold text-foreground mb-6">Disputes</h1>
             <div className="space-y-4">
               {mockDisputes.map(d => (
-                <div key={d.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={d.id} className="neo-card p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">

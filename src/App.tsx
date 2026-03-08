@@ -47,6 +47,8 @@ const App = () => (
             <Route path="/farmer/register" element={<FarmerRegisterPage />} />
             <Route path="/buyer/register" element={<BuyerRegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             {/* Legacy login routes redirect to unified login */}
             <Route path="/farmer/login" element={<LoginPage />} />
             <Route path="/buyer/login" element={<LoginPage />} />

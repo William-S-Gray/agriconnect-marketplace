@@ -83,6 +83,11 @@ const LoginPage = () => {
             <Label htmlFor="password" className="text-foreground">Password</Label>
             <Input id="password" type="password" {...register('password')} placeholder="••••••••" className="neo-inset border-none" />
           </div>
+          <div className="flex items-center justify-between">
+            <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <Button type="submit" className="w-full neo-btn bg-primary text-primary-foreground hover:bg-primary/90">
             Sign In as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
           </Button>

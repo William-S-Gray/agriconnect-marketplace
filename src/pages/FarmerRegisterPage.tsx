@@ -24,7 +24,7 @@ const farmerSchema = z.object({
   farm_size_ha: z.string().optional(),
   ecocash_number: z.string().regex(/^(\+263|0)(7[1-8])\d{7}$/, 'Invalid EcoCash number'),
   id_number: z.string().optional(),
-  password: z.string().min(8, 'Minimum 8 characters'),
+  password: passwordPolicy,
   confirm_password: z.string(),
   agreed: z.boolean().refine(v => v, 'You must agree'),
 }).refine(d => d.password === d.confirm_password, { message: "Passwords don't match", path: ['confirm_password'] });

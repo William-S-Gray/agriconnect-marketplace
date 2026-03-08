@@ -17,7 +17,7 @@ const buyerSchema = z.object({
   email: z.string().email(),
   city: z.string().min(2),
   buyer_type: z.string().min(1),
-  password: z.string().min(8),
+  password: passwordPolicy,
   confirm_password: z.string(),
 }).refine(d => d.password === d.confirm_password, { message: "Passwords don't match", path: ['confirm_password'] });
 

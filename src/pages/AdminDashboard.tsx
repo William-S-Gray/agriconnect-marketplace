@@ -307,7 +307,7 @@ const AdminDashboard = () => {
         {tab === 'prices' && (
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground mb-6">Market Price Management</h1>
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="neo-card overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted">

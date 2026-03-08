@@ -87,7 +87,7 @@ export function ProduceCard({ listing }: ProduceCardProps) {
             {farmer.rating > 0 && (
               <div className="flex items-center gap-1">
                 <Star className="h-3 w-3 fill-accent text-accent" />
-                <span className="text-xs font-medium">{farmer.rating}</span>
+                <span className="text-xs font-medium text-foreground">{farmer.rating}</span>
               </div>
             )}
           </div>

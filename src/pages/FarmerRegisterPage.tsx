@@ -32,13 +32,13 @@ type FarmerFormData = z.infer<typeof farmerSchema>;
 const FarmerRegisterPage = () => {
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FarmerFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FarmerFormData>({
     resolver: zodResolver(farmerSchema),
   });
 
   const onSubmit = (data: FarmerFormData) => {
     toast.success('Registration submitted! Your farm will be verified within 24 hours.');
-    navigate('/farmer/login');
+    navigate('/login');
   };
 
   return (
@@ -46,7 +46,7 @@ const FarmerRegisterPage = () => {
       <div className="container mx-auto px-4 py-6">
         <Link to="/" className="flex items-center gap-2 text-primary">
           <Leaf className="h-6 w-6" />
-          <span className="font-heading text-xl font-bold">AgriConnect</span>
+          <span className="font-heading text-xl font-bold text-foreground">AgriConnect</span>
         </Link>
       </div>
 
@@ -61,62 +61,62 @@ const FarmerRegisterPage = () => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="bg-card border border-border rounded-xl p-6 md:p-8 space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="neo-card p-6 md:p-8 space-y-5">
             {step === 1 && (
               <>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input id="name" {...register('name')} placeholder="John Moyo" />
+                    <Label htmlFor="name" className="text-foreground">Full Name *</Label>
+                    <Input id="name" {...register('name')} placeholder="John Moyo" className="neo-inset border-none" />
                     {errors.name && <p className="text-destructive text-xs mt-1">{errors.name.message}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="farm_name">Farm Name *</Label>
-                    <Input id="farm_name" {...register('farm_name')} placeholder="Moyo's Green Acres" />
+                    <Label htmlFor="farm_name" className="text-foreground">Farm Name *</Label>
+                    <Input id="farm_name" {...register('farm_name')} placeholder="Moyo's Green Acres" className="neo-inset border-none" />
                     {errors.farm_name && <p className="text-destructive text-xs mt-1">{errors.farm_name.message}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="phone">Phone Number *</Label>
-                      <Input id="phone" {...register('phone')} placeholder="0771234567" />
+                      <Label htmlFor="phone" className="text-foreground">Phone Number *</Label>
+                      <Input id="phone" {...register('phone')} placeholder="0771234567" className="neo-inset border-none" />
                       {errors.phone && <p className="text-destructive text-xs mt-1">{errors.phone.message}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input id="email" type="email" {...register('email')} placeholder="john@farm.co.zw" />
+                      <Label htmlFor="email" className="text-foreground">Email *</Label>
+                      <Input id="email" type="email" {...register('email')} placeholder="john@farm.co.zw" className="neo-inset border-none" />
                       {errors.email && <p className="text-destructive text-xs mt-1">{errors.email.message}</p>}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Province *</Label>
+                      <Label className="text-foreground">Province *</Label>
                       <Select onValueChange={(v) => setValue('province', v)}>
-                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>
+                        <SelectTrigger className="neo-inset border-none"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent className="neo-card border-none">
                           {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       {errors.province && <p className="text-destructive text-xs mt-1">{errors.province.message}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="district">District *</Label>
-                      <Input id="district" {...register('district')} placeholder="Marondera" />
+                      <Label htmlFor="district" className="text-foreground">District *</Label>
+                      <Input id="district" {...register('district')} placeholder="Marondera" className="neo-inset border-none" />
                       {errors.district && <p className="text-destructive text-xs mt-1">{errors.district.message}</p>}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="farm_size_ha">Farm Size (ha)</Label>
-                      <Input id="farm_size_ha" type="number" {...register('farm_size_ha')} placeholder="10" />
+                      <Label htmlFor="farm_size_ha" className="text-foreground">Farm Size (ha)</Label>
+                      <Input id="farm_size_ha" type="number" {...register('farm_size_ha')} placeholder="10" className="neo-inset border-none" />
                     </div>
                     <div>
-                      <Label htmlFor="ecocash_number">EcoCash Number *</Label>
-                      <Input id="ecocash_number" {...register('ecocash_number')} placeholder="0771234567" />
+                      <Label htmlFor="ecocash_number" className="text-foreground">EcoCash Number *</Label>
+                      <Input id="ecocash_number" {...register('ecocash_number')} placeholder="0771234567" className="neo-inset border-none" />
                       {errors.ecocash_number && <p className="text-destructive text-xs mt-1">{errors.ecocash_number.message}</p>}
                     </div>
                   </div>
                 </div>
-                <Button type="button" className="w-full bg-primary text-primary-foreground" onClick={() => setStep(2)}>
+                <Button type="button" className="w-full neo-btn bg-primary text-primary-foreground" onClick={() => setStep(2)}>
                   Next <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </>
@@ -126,24 +126,24 @@ const FarmerRegisterPage = () => {
               <>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="id_number">National ID Number (optional)</Label>
-                    <Input id="id_number" {...register('id_number')} placeholder="63-123456A78" />
+                    <Label htmlFor="id_number" className="text-foreground">National ID Number (optional)</Label>
+                    <Input id="id_number" {...register('id_number')} placeholder="63-123456A78" className="neo-inset border-none" />
                   </div>
                   <div>
-                    <Label>Profile Photo (optional)</Label>
-                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
+                    <Label className="text-foreground">Profile Photo (optional)</Label>
+                    <div className="neo-inset p-8 text-center cursor-pointer rounded-xl">
                       <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">Drag & drop or click to upload</p>
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="password">Password *</Label>
-                    <Input id="password" type="password" {...register('password')} />
+                    <Label htmlFor="password" className="text-foreground">Password *</Label>
+                    <Input id="password" type="password" {...register('password')} className="neo-inset border-none" />
                     {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="confirm_password">Confirm Password *</Label>
-                    <Input id="confirm_password" type="password" {...register('confirm_password')} />
+                    <Label htmlFor="confirm_password" className="text-foreground">Confirm Password *</Label>
+                    <Input id="confirm_password" type="password" {...register('confirm_password')} className="neo-inset border-none" />
                     {errors.confirm_password && <p className="text-destructive text-xs mt-1">{errors.confirm_password.message}</p>}
                   </div>
                   <label className="flex items-start gap-2 cursor-pointer">
@@ -153,7 +153,7 @@ const FarmerRegisterPage = () => {
                   {errors.agreed && <p className="text-destructive text-xs">{errors.agreed.message}</p>}
                 </div>
                 <div className="flex gap-3">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1">
+                  <Button type="button" variant="outline" onClick={() => setStep(1)} className="flex-1 neo-flat border-none">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button type="submit" className="flex-1 btn-gold">Register Farm</Button>
@@ -162,7 +162,7 @@ const FarmerRegisterPage = () => {
             )}
 
             <p className="text-center text-sm text-muted-foreground">
-              Already registered? <Link to="/farmer/login" className="text-primary font-medium hover:underline">Login here</Link>
+              Already registered? <Link to="/login" className="text-primary font-medium hover:underline">Login here</Link>
             </p>
           </form>
         </div>

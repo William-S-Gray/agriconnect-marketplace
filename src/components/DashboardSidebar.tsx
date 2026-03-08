@@ -24,10 +24,10 @@ export function DashboardSidebar({ nav, userName, subtitle, status, onLogout }: 
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-card border-r border-border p-4 shrink-0">
+      <aside className="hidden md:flex flex-col w-64 neo-flat rounded-none p-4 shrink-0">
         <Link to="/" className="flex items-center gap-2 mb-8 px-2">
           <Sprout className="h-6 w-6 text-primary" />
-          <span className="font-heading text-lg font-bold">AgriConnect</span>
+          <span className="font-heading text-lg font-bold text-foreground">AgriConnect</span>
         </Link>
         <div className="px-2 mb-6">
           <p className="font-semibold text-foreground text-sm">{userName}</p>
@@ -36,20 +36,20 @@ export function DashboardSidebar({ nav, userName, subtitle, status, onLogout }: 
         </div>
         <nav className="space-y-1 flex-1">
           {nav.map(n => (
-            <Link key={n.label} to={n.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              location.pathname === n.href ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted'
+            <Link key={n.label} to={n.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+              location.pathname === n.href ? 'neo-inset text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
             }`}>
               <n.icon className="h-4 w-4" />{n.label}
             </Link>
           ))}
         </nav>
-        <button onClick={() => { onLogout(); navigate('/'); }} className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-destructive">
+        <button onClick={() => { onLogout(); navigate('/'); }} className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-destructive transition-colors">
           <LogOut className="h-4 w-4" />Logout
         </button>
       </aside>
 
       {/* Mobile bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border md:hidden flex justify-around py-2 z-40">
+      <div className="fixed bottom-0 left-0 right-0 neo-flat rounded-none md:hidden flex justify-around py-2 z-40">
         {nav.slice(0, 5).map(n => (
           <Link key={n.label} to={n.href} className={`flex flex-col items-center text-xs p-1 ${
             location.pathname === n.href ? 'text-primary' : 'text-muted-foreground'

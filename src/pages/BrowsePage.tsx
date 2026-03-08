@@ -54,7 +54,6 @@ const BrowsePage = () => {
 
   const FilterPanel = () => (
     <div className="space-y-6">
-      {/* Categories */}
       <div>
         <h3 className="font-heading font-semibold text-foreground mb-3 text-sm">Category</h3>
         <div className="space-y-2">
@@ -64,13 +63,11 @@ const BrowsePage = () => {
                 checked={selectedCategories.includes(cat.name)}
                 onCheckedChange={() => setSelectedCategories(prev => toggleArray(prev, cat.name))}
               />
-              <span className="text-sm">{cat.emoji} {cat.name}</span>
+              <span className="text-sm text-foreground">{cat.emoji} {cat.name}</span>
             </label>
           ))}
         </div>
       </div>
-
-      {/* Provinces */}
       <div>
         <h3 className="font-heading font-semibold text-foreground mb-3 text-sm">Province</h3>
         <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -80,13 +77,11 @@ const BrowsePage = () => {
                 checked={selectedProvinces.includes(p)}
                 onCheckedChange={() => setSelectedProvinces(prev => toggleArray(prev, p))}
               />
-              <span className="text-sm">{p}</span>
+              <span className="text-sm text-foreground">{p}</span>
             </label>
           ))}
         </div>
       </div>
-
-      {/* Price range */}
       <div>
         <h3 className="font-heading font-semibold text-foreground mb-3 text-sm">Price Range (USD/unit)</h3>
         <Slider value={priceRange} onValueChange={setPriceRange} min={0} max={10} step={0.1} className="mb-2" />
@@ -95,8 +90,6 @@ const BrowsePage = () => {
           <span>${priceRange[1].toFixed(2)}</span>
         </div>
       </div>
-
-      {/* Delivery */}
       <div>
         <h3 className="font-heading font-semibold text-foreground mb-3 text-sm">Delivery</h3>
         <div className="space-y-2">
@@ -106,18 +99,15 @@ const BrowsePage = () => {
                 checked={deliveryFilter.includes(d)}
                 onCheckedChange={() => setDeliveryFilter(prev => toggleArray(prev, d))}
               />
-              <span className="text-sm">{d === 'PICKUP' ? '📍 Pickup' : '🚗 Delivery'}</span>
+              <span className="text-sm text-foreground">{d === 'PICKUP' ? '📍 Pickup' : '🚗 Delivery'}</span>
             </label>
           ))}
         </div>
       </div>
-
-      {/* Organic */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">Organic Only</span>
+        <span className="text-sm font-medium text-foreground">Organic Only</span>
         <Switch checked={organicOnly} onCheckedChange={setOrganicOnly} />
       </div>
-
       <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full text-muted-foreground">
         Clear all filters
       </Button>
@@ -137,10 +127,10 @@ const BrowsePage = () => {
           </div>
           <div className="flex items-center gap-3">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger className="w-36 neo-flat border-none">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="neo-card border-none">
                 <SelectItem value="newest">Newest</SelectItem>
                 <SelectItem value="price-low">Price: Low</SelectItem>
                 <SelectItem value="price-high">Price: High</SelectItem>
@@ -149,7 +139,7 @@ const BrowsePage = () => {
             <Button
               variant="outline"
               size="sm"
-              className="md:hidden"
+              className="md:hidden neo-flat border-none"
               onClick={() => setMobileFilters(true)}
             >
               <SlidersHorizontal className="h-4 w-4 mr-1" />
@@ -159,14 +149,12 @@ const BrowsePage = () => {
         </div>
 
         <div className="flex gap-8">
-          {/* Desktop sidebar */}
           <aside className="hidden md:block w-64 shrink-0">
-            <div className="sticky top-20 bg-card border border-border rounded-xl p-5">
+            <div className="sticky top-20 neo-card p-5">
               <FilterPanel />
             </div>
           </aside>
 
-          {/* Grid */}
           <div className="flex-1">
             {filteredListings.length === 0 ? (
               <div className="text-center py-20 text-muted-foreground">
@@ -184,17 +172,16 @@ const BrowsePage = () => {
         </div>
       </div>
 
-      {/* Mobile filter drawer */}
       {mobileFilters && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setMobileFilters(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in">
+          <div className="absolute bottom-0 left-0 right-0 neo-card rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading font-semibold text-foreground">Filters</h3>
-              <button onClick={() => setMobileFilters(false)}><X className="h-5 w-5" /></button>
+              <button onClick={() => setMobileFilters(false)}><X className="h-5 w-5 text-foreground" /></button>
             </div>
             <FilterPanel />
-            <Button className="w-full mt-4 bg-primary text-primary-foreground" onClick={() => setMobileFilters(false)}>
+            <Button className="w-full mt-4 neo-btn bg-primary text-primary-foreground" onClick={() => setMobileFilters(false)}>
               Show {filteredListings.length} results
             </Button>
           </div>

@@ -29,16 +29,16 @@ const MarketPricesPage = () => {
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-8">
           <Select value={provinceFilter} onValueChange={setProvinceFilter}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="Province" /></SelectTrigger>
-            <SelectContent>
+            <SelectTrigger className="w-44 neo-flat border-none"><SelectValue placeholder="Province" /></SelectTrigger>
+            <SelectContent className="neo-card border-none">
               <SelectItem value="all">All Provinces</SelectItem>
               {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               <SelectItem value="Multiple">Multiple</SelectItem>
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="Category" /></SelectTrigger>
-            <SelectContent>
+            <SelectTrigger className="w-44 neo-flat border-none"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent className="neo-card border-none">
               <SelectItem value="all">All Categories</SelectItem>
               {CATEGORIES.map(c => <SelectItem key={c.name} value={c.name}>{c.emoji} {c.name}</SelectItem>)}
             </SelectContent>
@@ -46,11 +46,11 @@ const MarketPricesPage = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="neo-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-muted">
+                <tr className="neo-inset">
                   <th className="text-left p-4 text-sm font-semibold text-foreground">Crop</th>
                   <th className="text-left p-4 text-sm font-semibold text-foreground">Category</th>
                   <th className="text-right p-4 text-sm font-semibold text-foreground">Avg Price</th>
@@ -62,7 +62,7 @@ const MarketPricesPage = () => {
               </thead>
               <tbody>
                 {filtered.map(item => (
-                  <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                  <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="p-4 font-medium text-foreground">{item.produce_type}</td>
                     <td className="p-4 text-sm text-muted-foreground">{item.category}</td>
                     <td className="p-4 text-right">
@@ -85,7 +85,7 @@ const MarketPricesPage = () => {
         )}
 
         {/* Price trends placeholder */}
-        <div className="mt-10 bg-card border border-border rounded-xl p-8 text-center">
+        <div className="mt-10 neo-card p-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <TrendingUp className="h-6 w-6 text-fresh" />
             <TrendingDown className="h-6 w-6 text-destructive" />

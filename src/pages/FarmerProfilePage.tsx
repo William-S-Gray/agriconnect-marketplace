@@ -65,7 +65,7 @@ const FarmerProfilePage = () => {
             { label: 'Active Listings', value: listings.filter(l => l.status === 'ACTIVE').length },
             { label: 'Reviews', value: farmer.total_reviews },
           ].map((s, i) => (
-            <div key={i} className="bg-card border border-border rounded-xl p-4 text-center">
+            <div key={i} className="neo-card p-4 text-center">
               <p className="font-mono text-2xl font-bold text-foreground">{s.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
             </div>
@@ -89,10 +89,10 @@ const FarmerProfilePage = () => {
         ) : (
           <div className="space-y-4">
             {reviews.map(r => (
-              <div key={r.id} className="bg-card border border-border rounded-lg p-4">
+              <div key={r.id} className="neo-flat p-4 rounded-xl">
                 <div className="flex items-center gap-1 mb-2">
                   {[1,2,3,4,5].map(s => (
-                    <Star key={s} className={`h-3 w-3 ${s <= r.rating ? 'fill-accent text-accent' : 'text-border'}`} />
+                    <Star key={s} className={`h-3 w-3 ${s <= r.rating ? 'fill-accent text-accent' : 'text-muted-foreground/30'}`} />
                   ))}
                 </div>
                 <p className="text-sm text-foreground">{r.comment}</p>

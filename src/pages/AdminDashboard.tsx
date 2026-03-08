@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-card border-r border-border p-4 shrink-0">
+      <aside className="hidden md:flex flex-col w-64 neo-flat rounded-none p-4 shrink-0">
         <div className="flex items-center gap-2 mb-8 px-2">
           <Shield className="h-6 w-6 text-primary" />
           <span className="font-heading text-lg font-bold">Admin Panel</span>
@@ -70,8 +70,8 @@ const AdminDashboard = () => {
             { icon: DollarSign, label: 'Prices', value: 'prices' },
             { icon: TrendingUp, label: 'Analytics', value: 'analytics' },
           ].map(n => (
-            <button key={n.value} onClick={() => setTab(n.value)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              tab === n.value ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted'
+            <button key={n.value} onClick={() => setTab(n.value)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+              tab === n.value ? 'neo-inset text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
             }`}>
               <n.icon className="h-4 w-4" />{n.label}
               {n.value === 'farmers' && pendingFarmers.length > 0 && (
@@ -109,7 +109,7 @@ const AdminDashboard = () => {
                 { label: 'Active Farmers', value: mockFarmers.filter(f=>f.status==='VERIFIED').length, icon: Users, color: 'text-fresh' },
                 { label: 'Active Listings', value: mockListings.filter(l=>l.status==='ACTIVE').length, icon: Sprout, color: 'text-primary' },
               ].map((s, i) => (
-                <div key={i} className="bg-card border border-border rounded-xl p-5">
+                <div key={i} className="neo-card p-5">
                   <s.icon className={`h-5 w-5 ${s.color} mb-2`} />
                   <p className="font-mono text-2xl font-bold text-foreground">{s.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
@@ -119,7 +119,7 @@ const AdminDashboard = () => {
 
             <div className="grid lg:grid-cols-2 gap-6 mb-8">
               {pendingFarmers.length > 0 && (
-                <div className="bg-card border border-border rounded-xl p-5">
+                <div className="neo-card p-5">
                   <h2 className="font-heading font-semibold text-foreground mb-4">⚠️ Pending Farmer Verifications ({pendingFarmers.length})</h2>
                   {pendingFarmers.map(f => (
                     <div key={f.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -141,7 +141,7 @@ const AdminDashboard = () => {
               )}
 
               {mockDisputes.filter(d => d.status === 'OPEN').length > 0 && (
-                <div className="bg-card border border-border rounded-xl p-5">
+                <div className="neo-card p-5">
                   <h2 className="font-heading font-semibold text-foreground mb-4">🔥 Open Disputes</h2>
                   {mockDisputes.filter(d => d.status === 'OPEN').map(d => (
                     <div key={d.id} className="py-3 border-b border-border last:border-0">
@@ -158,7 +158,7 @@ const AdminDashboard = () => {
               )}
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-5">
+            <div className="neo-card p-5">
               <h2 className="font-heading font-semibold text-foreground mb-4">Revenue Trend</h2>
               <ChartContainer config={chartConfig} className="h-[250px]">
                 <BarChart data={revenueData}>
@@ -182,7 +182,7 @@ const AdminDashboard = () => {
             </div>
             <div className="space-y-4">
               {filteredFarmers.map(f => (
-                <div key={f.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={f.id} className="neo-card p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -239,7 +239,7 @@ const AdminDashboard = () => {
             </div>
             <div className="space-y-4">
               {filteredOrders.map(order => (
-                <div key={order.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={order.id} className="neo-card p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="font-mono text-xs text-muted-foreground">#{order.id.toUpperCase()}</p>
@@ -267,7 +267,7 @@ const AdminDashboard = () => {
             <h1 className="font-heading text-2xl font-bold text-foreground mb-6">Disputes</h1>
             <div className="space-y-4">
               {mockDisputes.map(d => (
-                <div key={d.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={d.id} className="neo-card p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -307,7 +307,7 @@ const AdminDashboard = () => {
         {tab === 'prices' && (
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground mb-6">Market Price Management</h1>
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="neo-card overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted">

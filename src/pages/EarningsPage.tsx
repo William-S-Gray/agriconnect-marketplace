@@ -4,7 +4,7 @@ import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { useFarmerAuth } from '@/stores/auth-store';
 import { getOrdersByFarmer } from '@/lib/mock-data';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const nav = [
   { icon: BarChart3, label: 'Dashboard', href: '/farm/dashboard' },
@@ -26,7 +26,7 @@ const EarningsPage = () => {
   const { farmer, logout } = useFarmerAuth();
   const navigate = useNavigate();
 
-  if (!farmer) { navigate('/farmer/login'); return null; }
+  if (!farmer) { navigate('/login'); return null; }
 
   const orders = getOrdersByFarmer(farmer.id);
   const completedOrders = orders.filter(o => o.status === 'COMPLETED');
@@ -46,7 +46,7 @@ const EarningsPage = () => {
             { icon: Wallet, label: 'Pending Payout', value: `$${pendingPayout.toFixed(2)}`, color: 'text-accent' },
             { icon: TrendingUp, label: 'Platform Fees', value: `$${totalFees.toFixed(2)}`, color: 'text-muted-foreground' },
           ].map((s, i) => (
-            <div key={i} className="bg-card border border-border rounded-xl p-5">
+            <div key={i} className="neo-card p-5">
               <s.icon className={`h-5 w-5 ${s.color} mb-2`} />
               <p className="font-mono text-2xl font-bold text-foreground">{s.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
@@ -54,7 +54,7 @@ const EarningsPage = () => {
           ))}
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-5 mb-8">
+        <div className="neo-card p-5 mb-8">
           <h2 className="font-heading font-semibold text-foreground mb-4">Earnings Trend</h2>
           <ChartContainer config={chartConfig} className="h-[300px]">
             <BarChart data={chartData}>
@@ -66,7 +66,7 @@ const EarningsPage = () => {
           </ChartContainer>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-5">
+        <div className="neo-card p-5">
           <h2 className="font-heading font-semibold text-foreground mb-4">Payout History</h2>
           <div className="space-y-3">
             {completedOrders.map(o => (

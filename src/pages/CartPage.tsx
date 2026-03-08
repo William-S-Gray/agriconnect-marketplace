@@ -19,9 +19,11 @@ const CartPage = () => {
 
         {cart.length === 0 ? (
           <div className="text-center py-20">
-            <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <div className="neo-card w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShoppingCart className="h-10 w-10 text-muted-foreground" />
+            </div>
             <p className="text-muted-foreground mb-4">Your cart is empty.</p>
-            <Link to="/browse"><Button className="bg-primary text-primary-foreground">Browse Produce</Button></Link>
+            <Link to="/browse"><Button className="neo-btn bg-primary text-primary-foreground">Browse Produce</Button></Link>
           </div>
         ) : (
           <>
@@ -29,8 +31,8 @@ const CartPage = () => {
               {cart.map(item => {
                 const order = calculateOrder(item.quantity, item.pricePerUnit);
                 return (
-                  <div key={item.listingId} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <div key={item.listingId} className="neo-card p-4 flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl neo-inset flex items-center justify-center shrink-0">
                       <span className="text-2xl">🥬</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -39,11 +41,11 @@ const CartPage = () => {
                       <p className="price-display text-sm mt-1">${item.pricePerUnit.toFixed(2)} / {item.unit}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateCartQuantity(item.listingId, Math.max(1, item.quantity - 1))}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 neo-flat border-none" onClick={() => updateCartQuantity(item.listingId, Math.max(1, item.quantity - 1))}>
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="font-mono text-sm w-8 text-center">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateCartQuantity(item.listingId, Math.min(item.maxAvailable, item.quantity + 1))}>
+                      <span className="font-mono text-sm w-8 text-center text-foreground">{item.quantity}</span>
+                      <Button variant="outline" size="icon" className="h-8 w-8 neo-flat border-none" onClick={() => updateCartQuantity(item.listingId, Math.min(item.maxAvailable, item.quantity + 1))}>
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
@@ -58,7 +60,7 @@ const CartPage = () => {
               })}
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-6">
+            <div className="neo-card p-6">
               <div className="flex justify-between items-center mb-4">
                 <span className="font-semibold text-foreground">Total</span>
                 <span className="font-mono text-2xl font-bold text-accent">${grandTotal.toFixed(2)}</span>
@@ -69,7 +71,7 @@ const CartPage = () => {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground text-center">Please login to checkout</p>
-                  <Link to="/buyer/login"><Button className="w-full bg-primary text-primary-foreground">Login to Checkout</Button></Link>
+                  <Link to="/login"><Button className="w-full neo-btn bg-primary text-primary-foreground">Login to Checkout</Button></Link>
                 </div>
               )}
             </div>

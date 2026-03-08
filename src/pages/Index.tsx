@@ -30,21 +30,21 @@ const HomePage = () => {
           </p>
 
           {/* Search bar */}
-          <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3 bg-card/10 backdrop-blur-sm p-3 rounded-xl border border-primary-foreground/20">
+          <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3 bg-card/10 backdrop-blur-sm p-3 rounded-2xl border border-primary-foreground/20">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-foreground/60" />
               <Input
                 placeholder="Search produce..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50"
+                className="pl-10 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 rounded-xl"
               />
             </div>
             <Select value={province} onValueChange={setProvince}>
-              <SelectTrigger className="w-full sm:w-44 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground">
+              <SelectTrigger className="w-full sm:w-44 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground rounded-xl">
                 <SelectValue placeholder="Province" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="neo-card border-none">
                 {PROVINCES.map(p => (
                   <SelectItem key={p} value={p}>{p}</SelectItem>
                 ))}
@@ -58,14 +58,14 @@ const HomePage = () => {
       </section>
 
       {/* Category pills */}
-      <section className="py-8 border-b border-border">
+      <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
             {CATEGORIES.map(cat => (
               <Link
                 key={cat.name}
                 to={`/browse?category=${cat.name}`}
-                className="flex items-center gap-2 px-5 py-2.5 bg-card border border-border rounded-full whitespace-nowrap hover:border-primary hover:bg-primary/5 transition-colors text-sm font-medium text-foreground"
+                className="neo-flat flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap hover:scale-[1.02] transition-all text-sm font-medium text-foreground"
               >
                 <span className="text-lg">{cat.emoji}</span>
                 {cat.name}
@@ -96,7 +96,7 @@ const HomePage = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 bg-card border-y border-border">
+      <section className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-12">How It Works</h2>
           <div className="grid md:grid-cols-3 gap-10">
@@ -105,8 +105,8 @@ const HomePage = () => {
               { icon: Shield, title: 'Pay Securely via EcoCash', desc: 'Your payment is held in escrow until you confirm delivery. Protected from both sides.' },
               { icon: Truck, title: 'Collect or Get Delivered', desc: 'Pick up at the farm or arrange delivery directly with the farmer. Fresh from field to table.' },
             ].map((step, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+              <div key={i} className="neo-card p-8 flex flex-col items-center">
+                <div className="w-16 h-16 rounded-2xl neo-inset flex items-center justify-center mb-4">
                   <step.icon className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="font-heading font-semibold text-foreground mb-2">{step.title}</h3>
@@ -145,9 +145,9 @@ const HomePage = () => {
               <Link
                 key={farmer.id}
                 to={`/farmer/${farmer.id}`}
-                className="card-produce p-6 flex items-start gap-4"
+                className="neo-card p-6 flex items-start gap-4 transition-all duration-300"
               >
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 rounded-full neo-inset flex items-center justify-center shrink-0">
                   <span className="text-2xl">👨‍🌾</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -156,7 +156,7 @@ const HomePage = () => {
                   <p className="text-xs text-muted-foreground mt-1">{farmer.province}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Star className="h-4 w-4 fill-accent text-accent" />
-                    <span className="text-sm font-medium">{farmer.rating}</span>
+                    <span className="text-sm font-medium text-foreground">{farmer.rating}</span>
                     <span className="text-xs text-muted-foreground">({farmer.total_reviews} reviews)</span>
                   </div>
                 </div>
@@ -167,15 +167,17 @@ const HomePage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-card border-t border-border">
+      <section className="py-16">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-4">Are You a Farmer?</h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            Join AgriConnect and sell your produce directly to buyers across Zimbabwe. No middlemen, fair prices, EcoCash payouts.
-          </p>
-          <Link to="/farmer/register">
-            <Button className="btn-gold text-lg px-8 py-4 h-auto">List Your Harvest Free</Button>
-          </Link>
+          <div className="neo-card p-12">
+            <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-4">Are You a Farmer?</h2>
+            <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
+              Join AgriConnect and sell your produce directly to buyers across Zimbabwe. No middlemen, fair prices, EcoCash payouts.
+            </p>
+            <Link to="/farmer/register">
+              <Button className="btn-gold text-lg px-8 py-4 h-auto">List Your Harvest Free</Button>
+            </Link>
+          </div>
         </div>
       </section>
 

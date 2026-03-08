@@ -15,12 +15,12 @@ const BuyerProfilePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  if (!isAuthenticated || !buyer) { navigate('/buyer/login'); return null; }
-
   const [form, setForm] = useState({
-    name: buyer.name, phone: buyer.phone, email: buyer.email,
-    city: buyer.city, buyer_type: buyer.buyer_type,
+    name: buyer?.name || '', phone: buyer?.phone || '', email: buyer?.email || '',
+    city: buyer?.city || '', buyer_type: buyer?.buyer_type || 'INDIVIDUAL',
   });
+
+  if (!isAuthenticated || !buyer) { navigate('/buyer/login'); return null; }
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 

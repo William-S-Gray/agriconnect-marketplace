@@ -23,13 +23,13 @@ const FarmerProfileEditPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  if (!farmer) { navigate('/farmer/login'); return null; }
-
   const [form, setForm] = useState({
-    name: farmer.name, farm_name: farmer.farm_name, phone: farmer.phone,
-    email: farmer.email, province: farmer.province, district: farmer.district,
-    ecocash_number: farmer.ecocash_number, farm_size_ha: farmer.farm_size_ha?.toString() || '',
+    name: farmer?.name || '', farm_name: farmer?.farm_name || '', phone: farmer?.phone || '',
+    email: farmer?.email || '', province: farmer?.province || '', district: farmer?.district || '',
+    ecocash_number: farmer?.ecocash_number || '', farm_size_ha: farmer?.farm_size_ha?.toString() || '',
   });
+
+  if (!farmer) { navigate('/farmer/login'); return null; }
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 

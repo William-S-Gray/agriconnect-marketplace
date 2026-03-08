@@ -1,12 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Leaf, Sprout, ShoppingBag, Shield } from 'lucide-react';
+import { Leaf, Sprout, ShoppingBag, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, type UserRole } from '@/stores/auth-store';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { isAccountLocked, recordFailedAttempt, resetAttempts } from '@/lib/account-lockout';
 
 const roles = [
   { value: 'farmer' as UserRole, label: 'Farmer', icon: Sprout, hint: 'Demo: john@moyofarm.co.zw', color: 'text-primary' },
@@ -18,17 +19,46 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [selectedRole, setSelectedRole] = useState<UserRole>('buyer');
-  const { register, handleSubmit } = useForm<{ email: string; password: string }>();
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const { register, handleSubmit, watch } = useForm<{ email: string; password: string }>();
+  const emailValue = watch('email');
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
 
   const onSubmit = async (data: { email: string; password: string }) => {
+    // Check lockout before attempting login
+    const lockStatus = isAccountLocked(data.email);
+    if (lockStatus.locked) {
+      setLockoutSeconds(lockStatus.remainingSeconds);
+      toast.error('Account temporarily locked due to too many failed attempts.');
+      return;
+    }
+
     const success = await login(data.email, data.password, selectedRole);
     if (success) {
+      resetAttempts(data.email);
       toast.success(`Welcome! Logged in as ${selectedRole}.`);
       if (selectedRole === 'farmer') navigate('/farm/dashboard');
       else if (selectedRole === 'buyer') navigate('/buyer/dashboard');
       else if (selectedRole === 'admin') navigate('/admin');
     } else {
-      toast.error('Invalid credentials. Check the demo hints below each role.');
+      const result = recordFailedAttempt(data.email);
+      if (result.locked) {
+        setLockoutSeconds(result.lockoutSeconds);
+        toast.error('Too many failed attempts. Account locked for 15 minutes.');
+      } else {
+        toast.error(`Invalid credentials. ${result.attemptsRemaining} attempt${result.attemptsRemaining !== 1 ? 's' : ''} remaining.`);
+      }
     }
   };
 
@@ -88,7 +118,19 @@ const LoginPage = () => {
               Forgot password?
             </Link>
           </div>
-          <Button type="submit" className="w-full neo-btn bg-primary text-primary-foreground hover:bg-primary/90">
+          {lockoutSeconds > 0 && (
+            <div className="neo-inset rounded-xl p-3 flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p className="text-xs">
+                Account locked. Try again in <span className="font-bold">{Math.floor(lockoutSeconds / 60)}:{String(lockoutSeconds % 60).padStart(2, '0')}</span>
+              </p>
+            </div>
+          )}
+          <Button
+            type="submit"
+            disabled={lockoutSeconds > 0}
+            className="w-full neo-btn bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Sign In as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
           </Button>
         </form>

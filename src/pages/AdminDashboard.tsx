@@ -141,7 +141,7 @@ const AdminDashboard = () => {
               )}
 
               {mockDisputes.filter(d => d.status === 'OPEN').length > 0 && (
-                <div className="bg-card border border-border rounded-xl p-5">
+                <div className="neo-card p-5">
                   <h2 className="font-heading font-semibold text-foreground mb-4">🔥 Open Disputes</h2>
                   {mockDisputes.filter(d => d.status === 'OPEN').map(d => (
                     <div key={d.id} className="py-3 border-b border-border last:border-0">

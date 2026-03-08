@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Leaf, ArrowLeft, Mail } from 'lucide-react';
+import { Leaf, ArrowLeft, Mail, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,16 +12,36 @@ import { isRateLimited, getRateLimitRemainingSeconds } from '@/lib/rate-limit';
 
 const schema = z.object({
   email: z.string().trim().email('Please enter a valid email address').max(255),
+  captcha: z.string().min(1, 'Please solve the challenge'),
 });
+
+function generateChallenge() {
+  const a = Math.floor(Math.random() * 20) + 1;
+  const b = Math.floor(Math.random() * 15) + 1;
+  return { a, b, answer: a + b };
+}
 
 const ForgotPasswordPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, formState: { errors }, getValues } = useForm<z.infer<typeof schema>>({
+  const [challenge, setChallenge] = useState(generateChallenge);
+
+  const { register, handleSubmit, formState: { errors }, getValues, setError } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async () => {
+  const refreshChallenge = useCallback(() => {
+    setChallenge(generateChallenge());
+  }, []);
+
+  const onSubmit = async (data: z.infer<typeof schema>) => {
+    // Validate CAPTCHA answer
+    if (parseInt(data.captcha, 10) !== challenge.answer) {
+      setError('captcha', { message: 'Incorrect answer. Try again.' });
+      refreshChallenge();
+      return;
+    }
+
     if (isRateLimited('forgot-password', 3, 60_000)) {
       const remaining = getRateLimitRemainingSeconds('forgot-password');
       toast.error(`Too many attempts. Please wait ${remaining}s before trying again.`);
@@ -56,7 +76,7 @@ const ForgotPasswordPage = () => {
             </p>
             <p className="text-xs text-muted-foreground">Didn't receive it? Wait a minute, then try again.</p>
             <div className="flex flex-col gap-2">
-              <Button onClick={() => setSubmitted(false)} variant="outline" className="neo-flat border-none">
+              <Button onClick={() => { setSubmitted(false); refreshChallenge(); }} variant="outline" className="neo-flat border-none">
                 Try a different email
               </Button>
               <Link to="/login">
@@ -88,6 +108,33 @@ const ForgotPasswordPage = () => {
                 />
                 {errors.email && <p className="text-destructive text-xs mt-1">{errors.email.message}</p>}
               </div>
+
+              {/* Math CAPTCHA */}
+              <div>
+                <Label className="text-foreground">Security Check</Label>
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="neo-inset px-4 py-2.5 rounded-xl flex items-center gap-2 select-none">
+                    <span className="font-heading font-bold text-foreground text-lg">{challenge.a} + {challenge.b} = ?</span>
+                  </div>
+                  <Input
+                    {...register('captcha')}
+                    type="number"
+                    placeholder="?"
+                    className="neo-inset border-none w-20 text-center font-bold"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={refreshChallenge}
+                    className="neo-flat p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                    title="New challenge"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                </div>
+                {errors.captcha && <p className="text-destructive text-xs mt-1">{errors.captcha.message}</p>}
+              </div>
+
               <Button
                 type="submit"
                 disabled={loading}

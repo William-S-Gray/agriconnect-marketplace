@@ -1,6 +1,6 @@
-import { CheckCircle, Clock, AlertTriangle, XCircle, Truck, Package } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, XCircle, Truck, Package, Leaf } from 'lucide-react';
 
-type BadgeType = 'verified' | 'pending' | 'in-season' | 'limited' | 'sold-out' |
+type BadgeType = 'verified' | 'pending' | 'in-season' | 'limited' | 'sold-out' | 'organic' |
   'order-pending' | 'confirmed' | 'in-transit' | 'delivered' | 'completed' | 'disputed' | 'cancelled';
 
 const config: Record<BadgeType, { label: string; className: string; icon?: React.ElementType }> = {
@@ -9,6 +9,7 @@ const config: Record<BadgeType, { label: string; className: string; icon?: React
   'in-season':     { label: 'In Season',    className: 'badge-in-season', icon: CheckCircle },
   'limited':       { label: 'Limited',      className: 'badge-limited',   icon: AlertTriangle },
   'sold-out':      { label: 'Sold Out',     className: 'badge-sold-out',  icon: XCircle },
+  'organic':       { label: 'Organic',      className: 'badge-organic',   icon: Leaf },
   'order-pending': { label: 'Pending',      className: 'badge-pending',   icon: Clock },
   'confirmed':     { label: 'Confirmed',    className: 'badge-verified',  icon: CheckCircle },
   'in-transit':    { label: 'In Transit',   className: 'bg-primary/10 text-primary badge-status', icon: Truck },

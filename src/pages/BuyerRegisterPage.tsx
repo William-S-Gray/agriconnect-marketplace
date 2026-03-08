@@ -25,7 +25,7 @@ type BuyerFormData = z.infer<typeof buyerSchema>;
 
 const BuyerRegisterPage = () => {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<BuyerFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<BuyerFormData>({
     resolver: zodResolver(buyerSchema),
   });
 

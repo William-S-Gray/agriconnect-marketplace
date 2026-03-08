@@ -141,6 +141,7 @@ const FarmerRegisterPage = () => {
                   <div>
                     <Label htmlFor="password" className="text-foreground">Password *</Label>
                     <Input id="password" type="password" {...register('password')} className="neo-inset border-none" />
+                    <PasswordStrengthMeter password={watch('password') || ''} />
                     {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
                   </div>
                   <div>

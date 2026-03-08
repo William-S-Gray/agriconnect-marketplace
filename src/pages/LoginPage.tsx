@@ -118,7 +118,19 @@ const LoginPage = () => {
               Forgot password?
             </Link>
           </div>
-          <Button type="submit" className="w-full neo-btn bg-primary text-primary-foreground hover:bg-primary/90">
+          {lockoutSeconds > 0 && (
+            <div className="neo-inset rounded-xl p-3 flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p className="text-xs">
+                Account locked. Try again in <span className="font-bold">{Math.floor(lockoutSeconds / 60)}:{String(lockoutSeconds % 60).padStart(2, '0')}</span>
+              </p>
+            </div>
+          )}
+          <Button
+            type="submit"
+            disabled={lockoutSeconds > 0}
+            className="w-full neo-btn bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Sign In as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
           </Button>
         </form>

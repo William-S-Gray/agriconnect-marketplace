@@ -66,7 +66,7 @@ const ListingDetailPage = () => {
         <div className="grid lg:grid-cols-5 gap-8">
           {/* Photos */}
           <div className="lg:col-span-3">
-            <div className="rounded-xl overflow-hidden bg-gradient-to-br from-primary/10 to-fresh/10 h-64 md:h-96 flex items-center justify-center">
+            <div className="neo-card rounded-2xl overflow-hidden h-64 md:h-96 flex items-center justify-center bg-gradient-to-br from-primary/10 to-fresh/10">
               <span className="text-8xl opacity-50">
                 {listing.category === 'Vegetables' ? '🥬' : listing.category === 'Fruits' ? '🍎' : listing.category === 'Grains' ? '🌾' : '🫘'}
               </span>
@@ -75,7 +75,7 @@ const ListingDetailPage = () => {
 
           {/* Order Panel */}
           <div className="lg:col-span-2">
-            <div className="bg-card border border-border rounded-xl p-6 sticky top-20 space-y-5">
+            <div className="neo-card p-6 sticky top-20 space-y-5">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   {listing.is_organic && <StatusBadge type="in-season" />}
@@ -86,7 +86,7 @@ const ListingDetailPage = () => {
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex items-center gap-1">
                     {[1,2,3,4,5].map(s => (
-                      <Star key={s} className={`h-4 w-4 ${s <= Math.round(farmer.rating) ? 'fill-accent text-accent' : 'text-border'}`} />
+                      <Star key={s} className={`h-4 w-4 ${s <= Math.round(farmer.rating) ? 'fill-accent text-accent' : 'text-muted-foreground/30'}`} />
                     ))}
                   </div>
                   <span className="text-sm text-muted-foreground">({farmer.total_reviews} reviews)</span>
@@ -104,21 +104,21 @@ const ListingDetailPage = () => {
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Quantity ({listing.quantity_unit})</label>
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" size="icon" onClick={() => setQuantity(Math.max(listing.min_order_qty, quantity - 1))}>
+                  <Button variant="outline" size="icon" className="neo-flat border-none" onClick={() => setQuantity(Math.max(listing.min_order_qty, quantity - 1))}>
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="font-mono text-lg font-bold w-16 text-center">{quantity}</span>
-                  <Button variant="outline" size="icon" onClick={() => setQuantity(Math.min(listing.quantity_kg, quantity + 1))}>
+                  <span className="font-mono text-lg font-bold w-16 text-center text-foreground">{quantity}</span>
+                  <Button variant="outline" size="icon" className="neo-flat border-none" onClick={() => setQuantity(Math.min(listing.quantity_kg, quantity + 1))}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
               {/* Order summary */}
-              <div className="bg-muted rounded-lg p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span>Subtotal</span><span className="font-mono font-semibold">${order.subtotal.toFixed(2)}</span></div>
+              <div className="neo-inset p-4 space-y-2 text-sm">
+                <div className="flex justify-between text-foreground"><span>Subtotal</span><span className="font-mono font-semibold">${order.subtotal.toFixed(2)}</span></div>
                 <div className="flex justify-between text-muted-foreground"><span>Platform fee (5%)</span><span className="font-mono">${order.platformFee.toFixed(2)}</span></div>
-                <div className="flex justify-between font-bold border-t border-border pt-2"><span>Total</span><span className="font-mono text-accent">${order.total.toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold border-t border-border pt-2 text-foreground"><span>Total</span><span className="font-mono text-accent">${order.total.toFixed(2)}</span></div>
               </div>
 
               {/* Delivery */}
@@ -126,19 +126,19 @@ const ListingDetailPage = () => {
                 <label className="text-sm font-medium text-foreground mb-2 block">Delivery Method</label>
                 <div className="space-y-2">
                   {listing.delivery_options.map(opt => (
-                    <label key={opt} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      deliveryMethod === opt ? 'border-primary bg-primary/5' : 'border-border'
+                    <label key={opt} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                      deliveryMethod === opt ? 'neo-inset' : 'neo-flat'
                     }`}>
                       <input type="radio" name="delivery" checked={deliveryMethod === opt} onChange={() => setDeliveryMethod(opt as 'PICKUP' | 'DELIVERY')} className="accent-primary" />
                       {opt === 'PICKUP' ? <Package className="h-4 w-4 text-muted-foreground" /> : <Truck className="h-4 w-4 text-fresh" />}
-                      <span className="text-sm">{opt === 'PICKUP' ? 'Pickup at farm' : 'Delivery (negotiated)'}</span>
+                      <span className="text-sm text-foreground">{opt === 'PICKUP' ? 'Pickup at farm' : 'Delivery (negotiated)'}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-3">
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary-dark" onClick={handleAddToCart}>
+                <Button className="w-full neo-btn bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleAddToCart}>
                   Add to Cart
                 </Button>
                 <Button className="w-full btn-gold">Buy Now via EcoCash</Button>
@@ -154,9 +154,9 @@ const ListingDetailPage = () => {
         </div>
 
         {/* Farmer info */}
-        <div className="mt-10 bg-card border border-border rounded-xl p-6">
+        <div className="mt-10 neo-card p-6">
           <Link to={`/farmer/${farmer.id}`} className="flex items-center gap-4 group">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 rounded-full neo-inset flex items-center justify-center shrink-0">
               <span className="text-2xl">👨‍🌾</span>
             </div>
             <div className="flex-1">
@@ -164,11 +164,11 @@ const ListingDetailPage = () => {
               <p className="text-sm text-muted-foreground">{farmer.farm_name} · {farmer.province}</p>
               <div className="flex items-center gap-2 mt-1">
                 <Star className="h-4 w-4 fill-accent text-accent" />
-                <span className="text-sm font-medium">{farmer.rating}</span>
+                <span className="text-sm font-medium text-foreground">{farmer.rating}</span>
                 <span className="text-xs text-muted-foreground">{farmer.total_reviews} reviews · {farmer.total_sales > 0 ? `$${farmer.total_sales} in sales` : ''}</span>
               </div>
             </div>
-            <Button variant="outline" size="sm">View Profile</Button>
+            <Button variant="outline" size="sm" className="neo-flat border-none">View Profile</Button>
           </Link>
         </div>
 
@@ -188,10 +188,10 @@ const ListingDetailPage = () => {
           ) : (
             <div className="space-y-4">
               {reviews.map(review => (
-                <div key={review.id} className="bg-card border border-border rounded-lg p-4">
+                <div key={review.id} className="neo-flat p-4 rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
                     {[1,2,3,4,5].map(s => (
-                      <Star key={s} className={`h-3 w-3 ${s <= review.rating ? 'fill-accent text-accent' : 'text-border'}`} />
+                      <Star key={s} className={`h-3 w-3 ${s <= review.rating ? 'fill-accent text-accent' : 'text-muted-foreground/30'}`} />
                     ))}
                   </div>
                   <p className="text-sm text-foreground">{review.comment}</p>

@@ -119,7 +119,7 @@ const AdminDashboard = () => {
 
             <div className="grid lg:grid-cols-2 gap-6 mb-8">
               {pendingFarmers.length > 0 && (
-                <div className="bg-card border border-border rounded-xl p-5">
+                <div className="neo-card p-5">
                   <h2 className="font-heading font-semibold text-foreground mb-4">⚠️ Pending Farmer Verifications ({pendingFarmers.length})</h2>
                   {pendingFarmers.map(f => (
                     <div key={f.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">

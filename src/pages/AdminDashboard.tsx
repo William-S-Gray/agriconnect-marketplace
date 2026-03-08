@@ -158,7 +158,7 @@ const AdminDashboard = () => {
               )}
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-5">
+            <div className="neo-card p-5">
               <h2 className="font-heading font-semibold text-foreground mb-4">Revenue Trend</h2>
               <ChartContainer config={chartConfig} className="h-[250px]">
                 <BarChart data={revenueData}>

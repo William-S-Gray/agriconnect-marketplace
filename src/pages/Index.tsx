@@ -3,17 +3,14 @@ import { Search, ArrowRight, Sprout, Shield, Truck, Star, Users, ShoppingBag, Ma
 import { useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { ProduceCard } from '@/components/ProduceCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockListings, mockFarmers, CATEGORIES, PROVINCES } from '@/lib/mock-data';
+import { CATEGORIES, PROVINCES } from '@/lib/mock-data';
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [province, setProvince] = useState('');
-  const featuredListings = mockListings.filter(l => l.is_available).slice(0, 8);
-  const verifiedFarmers = mockFarmers.filter(f => f.status === 'VERIFIED');
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,7 +72,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* In Season Now */}
+      {/* In Season Now - Empty State */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
@@ -87,10 +84,13 @@ const HomePage = () => {
               View all <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {featuredListings.map(listing => (
-              <ProduceCard key={listing.id} listing={listing} />
-            ))}
+          <div className="neo-card p-12 text-center">
+            <Sprout className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">No produce listings yet.</p>
+            <p className="text-sm text-muted-foreground mt-1">Be the first farmer to list your harvest!</p>
+            <Link to="/farmer/register">
+              <Button className="btn-gold mt-4">Start Selling</Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -122,8 +122,8 @@ const HomePage = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-3 gap-6 text-center">
             {[
-              { icon: Users, num: '500+', label: 'Farmers' },
-              { icon: ShoppingBag, num: '1,200+', label: 'Listings' },
+              { icon: Users, num: '0', label: 'Farmers' },
+              { icon: ShoppingBag, num: '0', label: 'Listings' },
               { icon: MapPin, num: '10', label: 'Provinces' },
             ].map((s, i) => (
               <div key={i} className="flex flex-col items-center">
@@ -136,32 +136,14 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Featured Farmers */}
+      {/* Featured Farmers - Empty State */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-foreground mb-8">Featured Farmers</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {verifiedFarmers.map(farmer => (
-              <Link
-                key={farmer.id}
-                to={`/farmer/${farmer.id}`}
-                className="neo-card p-6 flex items-start gap-4 transition-all duration-300"
-              >
-                <div className="w-14 h-14 rounded-full neo-inset flex items-center justify-center shrink-0">
-                  <span className="text-2xl">👨‍🌾</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-heading font-semibold text-foreground">{farmer.name}</h3>
-                  <p className="text-sm text-muted-foreground">{farmer.farm_name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{farmer.province}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Star className="h-4 w-4 fill-accent text-accent" />
-                    <span className="text-sm font-medium text-foreground">{farmer.rating}</span>
-                    <span className="text-xs text-muted-foreground">({farmer.total_reviews} reviews)</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="neo-card p-12 text-center">
+            <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground font-medium">No verified farmers yet.</p>
+            <p className="text-sm text-muted-foreground mt-1">Farmers will appear here once they are verified.</p>
           </div>
         </div>
       </section>

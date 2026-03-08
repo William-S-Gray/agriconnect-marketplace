@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sprout, LogOut } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { LucideIcon } from 'lucide-react';
 
 interface NavItem {
@@ -25,10 +26,13 @@ export function DashboardSidebar({ nav, userName, subtitle, status, onLogout }: 
     <>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-64 neo-flat rounded-none p-4 shrink-0">
-        <Link to="/" className="flex items-center gap-2 mb-8 px-2">
-          <Sprout className="h-6 w-6 text-primary" />
-          <span className="font-heading text-lg font-bold text-foreground">AgriConnect</span>
-        </Link>
+        <div className="flex items-center justify-between mb-8 px-2">
+          <Link to="/" className="flex items-center gap-2">
+            <Sprout className="h-6 w-6 text-primary" />
+            <span className="font-heading text-lg font-bold text-foreground">AgriConnect</span>
+          </Link>
+          <ThemeToggle />
+        </div>
         <div className="px-2 mb-6">
           <p className="font-semibold text-foreground text-sm">{userName}</p>
           {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}

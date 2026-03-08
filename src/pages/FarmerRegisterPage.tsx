@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Leaf, ArrowLeft, ArrowRight, Upload } from 'lucide-react';
+import { passwordPolicy } from '@/lib/password-policy';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +24,7 @@ const farmerSchema = z.object({
   farm_size_ha: z.string().optional(),
   ecocash_number: z.string().regex(/^(\+263|0)(7[1-8])\d{7}$/, 'Invalid EcoCash number'),
   id_number: z.string().optional(),
-  password: z.string().min(8, 'Minimum 8 characters'),
+  password: passwordPolicy,
   confirm_password: z.string(),
   agreed: z.boolean().refine(v => v, 'You must agree'),
 }).refine(d => d.password === d.confirm_password, { message: "Passwords don't match", path: ['confirm_password'] });
@@ -32,7 +34,7 @@ type FarmerFormData = z.infer<typeof farmerSchema>;
 const FarmerRegisterPage = () => {
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FarmerFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FarmerFormData>({
     resolver: zodResolver(farmerSchema),
   });
 
@@ -139,6 +141,7 @@ const FarmerRegisterPage = () => {
                   <div>
                     <Label htmlFor="password" className="text-foreground">Password *</Label>
                     <Input id="password" type="password" {...register('password')} className="neo-inset border-none" />
+                    <PasswordStrengthMeter password={watch('password') || ''} />
                     {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
                   </div>
                   <div>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Truck, Package } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PriceTag } from '@/components/PriceTag';
+import { LazyImage } from '@/components/LazyImage';
 import type { ProduceListing } from '@/lib/mock-data';
 
 interface ProduceCardProps {
@@ -18,8 +19,14 @@ export function ProduceCard({ listing }: ProduceCardProps) {
   return (
     <Link to={`/listing/${listing.id}`} className="group">
       <div className="neo-card rounded-2xl overflow-hidden transition-all duration-300 group-hover:translate-y-[-4px]">
-        <div className="h-40 md:h-48 bg-gradient-to-br from-primary/10 to-fresh/10 flex items-center justify-center relative">
-          <span className="text-5xl md:text-6xl opacity-60">{categoryEmoji[listing.category] || '🌱'}</span>
+        <div className="relative">
+          <LazyImage
+            src={listing.photos?.[0]}
+            alt={listing.title}
+            className="h-40 md:h-48 w-full"
+            aspectRatio="4/3"
+            fallback={<span className="text-5xl md:text-6xl opacity-60">{categoryEmoji[listing.category] || '🌱'}</span>}
+          />
           <div className="absolute top-3 left-3 flex gap-1.5">
             <StatusBadge type={status} />
             {listing.is_organic && <StatusBadge type="organic" />}

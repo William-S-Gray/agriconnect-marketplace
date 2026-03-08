@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Leaf } from 'lucide-react';
+import { passwordPolicy } from '@/lib/password-policy';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +17,7 @@ const buyerSchema = z.object({
   email: z.string().email(),
   city: z.string().min(2),
   buyer_type: z.string().min(1),
-  password: z.string().min(8),
+  password: passwordPolicy,
   confirm_password: z.string(),
 }).refine(d => d.password === d.confirm_password, { message: "Passwords don't match", path: ['confirm_password'] });
 
@@ -23,7 +25,7 @@ type BuyerFormData = z.infer<typeof buyerSchema>;
 
 const BuyerRegisterPage = () => {
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<BuyerFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<BuyerFormData>({
     resolver: zodResolver(buyerSchema),
   });
 
@@ -82,6 +84,7 @@ const BuyerRegisterPage = () => {
           <div>
             <Label className="text-foreground">Password *</Label>
             <Input type="password" {...register('password')} className="neo-inset border-none" />
+            <PasswordStrengthMeter password={watch('password') || ''} />
             {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
           </div>
           <div>

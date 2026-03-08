@@ -15,6 +15,8 @@ const MarketPricesPage = lazy(() => import("./pages/MarketPricesPage"));
 const FarmerRegisterPage = lazy(() => import("./pages/FarmerRegisterPage"));
 const BuyerRegisterPage = lazy(() => import("./pages/BuyerRegisterPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const FarmerDashboard = lazy(() => import("./pages/FarmerDashboard"));
 const BuyerDashboard = lazy(() => import("./pages/BuyerDashboard"));
 const CartPage = lazy(() => import("./pages/CartPage"));
@@ -45,6 +47,8 @@ const App = () => (
             <Route path="/farmer/register" element={<FarmerRegisterPage />} />
             <Route path="/buyer/register" element={<BuyerRegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             {/* Legacy login routes redirect to unified login */}
             <Route path="/farmer/login" element={<LoginPage />} />
             <Route path="/buyer/login" element={<LoginPage />} />

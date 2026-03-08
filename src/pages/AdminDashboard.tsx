@@ -109,7 +109,7 @@ const AdminDashboard = () => {
                 { label: 'Active Farmers', value: mockFarmers.filter(f=>f.status==='VERIFIED').length, icon: Users, color: 'text-fresh' },
                 { label: 'Active Listings', value: mockListings.filter(l=>l.status==='ACTIVE').length, icon: Sprout, color: 'text-primary' },
               ].map((s, i) => (
-                <div key={i} className="bg-card border border-border rounded-xl p-5">
+                <div key={i} className="neo-card p-5">
                   <s.icon className={`h-5 w-5 ${s.color} mb-2`} />
                   <p className="font-mono text-2xl font-bold text-foreground">{s.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{s.label}</p>

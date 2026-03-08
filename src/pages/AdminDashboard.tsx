@@ -70,8 +70,8 @@ const AdminDashboard = () => {
             { icon: DollarSign, label: 'Prices', value: 'prices' },
             { icon: TrendingUp, label: 'Analytics', value: 'analytics' },
           ].map(n => (
-            <button key={n.value} onClick={() => setTab(n.value)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              tab === n.value ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted'
+            <button key={n.value} onClick={() => setTab(n.value)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+              tab === n.value ? 'neo-inset text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
             }`}>
               <n.icon className="h-4 w-4" />{n.label}
               {n.value === 'farmers' && pendingFarmers.length > 0 && (

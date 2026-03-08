@@ -182,7 +182,7 @@ const AdminDashboard = () => {
             </div>
             <div className="space-y-4">
               {filteredFarmers.map(f => (
-                <div key={f.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={f.id} className="neo-card p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

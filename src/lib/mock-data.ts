@@ -297,8 +297,39 @@ export const mockPriceHistory: PriceHistory[] = [
   { id: 'p10', produce_type: 'Soya Beans', category: 'Legumes', province: 'Mashonaland West', avg_price: 0.90, min_price: 0.70, max_price: 1.10, listings_count: 11, recorded_at: '2026-03-08' },
 ];
 
+export interface Dispute {
+  id: string;
+  order_id: string;
+  raised_by: 'BUYER' | 'FARMER';
+  reason: string;
+  description: string;
+  status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED_BUYER' | 'RESOLVED_FARMER' | 'CLOSED';
+  resolution?: string;
+  created_at: string;
+  // Joined
+  buyer_name?: string;
+  farmer_name?: string;
+  order_amount?: number;
+}
+
+export const mockDisputes: Dispute[] = [
+  {
+    id: 'd1', order_id: 'o2', raised_by: 'BUYER', reason: 'Quality Issue',
+    description: 'Butternuts were smaller than advertised and some were damaged.',
+    status: 'OPEN', created_at: '2026-03-06',
+    buyer_name: 'FoodCo Restaurant', farmer_name: 'Tendai Chirwa', order_amount: 240,
+  },
+  {
+    id: 'd2', order_id: 'o3', raised_by: 'FARMER', reason: 'Late Pickup',
+    description: 'Buyer did not collect produce on agreed date, spinach wilted.',
+    status: 'INVESTIGATING', created_at: '2026-03-02',
+    buyer_name: 'Kudakwashe Moyo', farmer_name: 'Grace Ndlovu', order_amount: 4,
+  },
+];
+
 export const getFarmerById = (id: string) => mockFarmers.find(f => f.id === id);
 export const getListingById = (id: string) => mockListings.find(l => l.id === id);
 export const getListingsByFarmer = (farmerId: string) => mockListings.filter(l => l.farmer_id === farmerId);
 export const getReviewsByFarmer = (farmerId: string) => mockReviews.filter(r => r.farmer_id === farmerId);
 export const getOrdersByFarmer = (farmerId: string) => mockOrders.filter(o => o.farmer_id === farmerId);
+export const getOrdersByBuyer = (buyerId: string) => mockOrders.filter(o => o.buyer_id === buyerId);

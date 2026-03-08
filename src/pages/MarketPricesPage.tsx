@@ -1,20 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockPriceHistory, PROVINCES, CATEGORIES } from '@/lib/mock-data';
+import { PROVINCES, CATEGORIES } from '@/lib/mock-data';
 
 const MarketPricesPage = () => {
   const [provinceFilter, setProvinceFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-
-  const filtered = useMemo(() => {
-    let data = mockPriceHistory;
-    if (provinceFilter !== 'all') data = data.filter(p => p.province === provinceFilter);
-    if (categoryFilter !== 'all') data = data.filter(p => p.category === categoryFilter);
-    return data;
-  }, [provinceFilter, categoryFilter]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,7 +26,6 @@ const MarketPricesPage = () => {
             <SelectContent className="neo-card border-none">
               <SelectItem value="all">All Provinces</SelectItem>
               {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              <SelectItem value="Multiple">Multiple</SelectItem>
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -45,7 +37,7 @@ const MarketPricesPage = () => {
           </Select>
         </div>
 
-        {/* Table */}
+        {/* Empty Table */}
         <div className="neo-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -61,28 +53,15 @@ const MarketPricesPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(item => (
-                  <tr key={item.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-4 font-medium text-foreground">{item.produce_type}</td>
-                    <td className="p-4 text-sm text-muted-foreground">{item.category}</td>
-                    <td className="p-4 text-right">
-                      <span className="price-display text-base">${item.avg_price.toFixed(2)}</span>
-                      <span className="text-xs text-muted-foreground">/kg</span>
-                    </td>
-                    <td className="p-4 text-right text-sm text-muted-foreground hidden sm:table-cell font-mono">${item.min_price.toFixed(2)}</td>
-                    <td className="p-4 text-right text-sm text-muted-foreground hidden sm:table-cell font-mono">${item.max_price.toFixed(2)}</td>
-                    <td className="p-4 text-sm text-muted-foreground hidden md:table-cell">{item.province}</td>
-                    <td className="p-4 text-right text-sm text-muted-foreground hidden md:table-cell">{item.listings_count}</td>
-                  </tr>
-                ))}
+                <tr>
+                  <td colSpan={7} className="p-12 text-center text-muted-foreground">
+                    No price data available yet. Prices will populate as listings are added.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
-
-        {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-10">No price data found for these filters.</p>
-        )}
 
         {/* Price trends placeholder */}
         <div className="mt-10 neo-card p-8 text-center">

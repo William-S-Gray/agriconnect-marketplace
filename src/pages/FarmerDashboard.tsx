@@ -2,8 +2,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3, Sprout, Package, DollarSign, Settings, Plus, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { useFarmerAuth } from '@/stores/auth-store';
-import { getListingsByFarmer, getOrdersByFarmer } from '@/lib/mock-data';
+
+const nav = [
+  { icon: BarChart3, label: 'Dashboard', href: '/farm/dashboard' },
+  { icon: Sprout, label: 'My Listings', href: '/farm/listings' },
+  { icon: Package, label: 'Orders', href: '/farm/orders' },
+  { icon: DollarSign, label: 'Earnings', href: '/farm/earnings' },
+  { icon: Settings, label: 'Profile', href: '/farm/profile' },
+];
 
 const FarmerDashboard = () => {
   const { farmer, logout } = useFarmerAuth();
@@ -14,47 +22,10 @@ const FarmerDashboard = () => {
     return null;
   }
 
-  const listings = getListingsByFarmer(farmer.id);
-  const orders = getOrdersByFarmer(farmer.id);
-  const activeListings = listings.filter(l => l.status === 'ACTIVE');
-  const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED');
-
-  const nav = [
-    { icon: BarChart3, label: 'Dashboard', href: '/farm/dashboard', active: true },
-    { icon: Sprout, label: 'My Listings', href: '/farm/listings' },
-    { icon: Package, label: 'Orders', href: '/farm/orders' },
-    { icon: DollarSign, label: 'Earnings', href: '/farm/earnings' },
-    { icon: Settings, label: 'Profile', href: '/farm/profile' },
-  ];
-
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar - desktop */}
-      <aside className="hidden md:flex flex-col w-64 neo-flat rounded-none p-4">
-        <Link to="/" className="flex items-center gap-2 mb-8 px-2">
-          <Sprout className="h-6 w-6 text-primary" />
-          <span className="font-heading text-lg font-bold text-foreground">AgriConnect</span>
-        </Link>
-        <div className="px-2 mb-6">
-          <p className="font-semibold text-foreground text-sm">{farmer.name}</p>
-          <p className="text-xs text-muted-foreground">{farmer.farm_name}</p>
-          <StatusBadge type={farmer.status === 'VERIFIED' ? 'verified' : 'pending'} />
-        </div>
-        <nav className="space-y-1 flex-1">
-          {nav.map(n => (
-            <Link key={n.label} to={n.href} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
-              n.active ? 'neo-inset text-primary font-medium' : 'text-muted-foreground hover:text-foreground'
-            }`}>
-              <n.icon className="h-4 w-4" />{n.label}
-            </Link>
-          ))}
-        </nav>
-        <button onClick={() => { logout(); navigate('/'); }} className="flex items-center gap-3 px-3 py-2.5 text-sm text-muted-foreground hover:text-destructive">
-          Logout
-        </button>
-      </aside>
+      <DashboardSidebar nav={nav} userName={farmer.name} subtitle={farmer.farm_name} status={farmer.status === 'VERIFIED' ? 'verified' : 'pending'} onLogout={logout} />
 
-      {/* Main */}
       <main className="flex-1 p-4 md:p-8">
         <h1 className="font-heading text-2xl font-bold text-foreground mb-1">Good morning, {farmer.farm_name} 👋</h1>
         <p className="text-muted-foreground text-sm mb-8">Here's what's happening with your farm today.</p>
@@ -62,10 +33,10 @@ const FarmerDashboard = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'This Month', value: `$${farmer.total_sales.toLocaleString()}`, icon: DollarSign, color: 'text-accent' },
-            { label: 'Active Listings', value: activeListings.length, icon: Sprout, color: 'text-primary' },
-            { label: 'Orders Total', value: orders.length, icon: Package, color: 'text-fresh' },
-            { label: 'Rating', value: `★ ${farmer.rating}`, icon: Star, color: 'text-accent' },
+            { label: 'This Month', value: '$0', icon: DollarSign, color: 'text-accent' },
+            { label: 'Active Listings', value: 0, icon: Sprout, color: 'text-primary' },
+            { label: 'Orders Total', value: 0, icon: Package, color: 'text-fresh' },
+            { label: 'Rating', value: '★ 0', icon: Star, color: 'text-accent' },
           ].map((s, i) => (
             <div key={i} className="neo-card p-5">
               <div className="flex items-center justify-between mb-2">
@@ -80,40 +51,7 @@ const FarmerDashboard = () => {
         {/* Pending orders */}
         <div className="mb-8">
           <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Pending Orders</h2>
-          {pendingOrders.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No pending orders.</p>
-          ) : (
-            <div className="neo-card overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="neo-inset">
-                    <th className="text-left p-3 text-xs font-semibold text-foreground">Buyer</th>
-                    <th className="text-left p-3 text-xs font-semibold text-foreground">Produce</th>
-                    <th className="text-right p-3 text-xs font-semibold text-foreground">Qty</th>
-                    <th className="text-right p-3 text-xs font-semibold text-foreground">Amount</th>
-                    <th className="text-left p-3 text-xs font-semibold text-foreground">Status</th>
-                    <th className="text-right p-3 text-xs font-semibold text-foreground">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingOrders.map(order => (
-                    <tr key={order.id} className="border-b border-border last:border-0">
-                      <td className="p-3 text-sm text-foreground">{order.buyer_name}</td>
-                      <td className="p-3 text-sm text-foreground">{order.produce_title}</td>
-                      <td className="p-3 text-sm text-right font-mono text-foreground">{order.quantity}</td>
-                      <td className="p-3 text-sm text-right font-mono text-foreground">${order.total_amount.toFixed(2)}</td>
-                      <td className="p-3"><StatusBadge type={order.status === 'PENDING' ? 'order-pending' : 'confirmed'} /></td>
-                      <td className="p-3 text-right">
-                        <Button size="sm" variant="outline" className="neo-flat border-none text-xs">
-                          {order.status === 'PENDING' ? 'Confirm' : 'Dispatch'}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <p className="text-muted-foreground text-sm">No pending orders.</p>
         </div>
 
         {/* Quick listings */}
@@ -125,23 +63,15 @@ const FarmerDashboard = () => {
             </Button>
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeListings.slice(0, 3).map(l => (
-            <div key={l.id} className="neo-card p-4">
-              <h3 className="font-heading font-semibold text-foreground text-sm mb-1">{l.title}</h3>
-              <p className="price-display text-base">${l.price_per_unit.toFixed(2)} <span className="text-muted-foreground text-xs font-normal">/ {l.quantity_unit}</span></p>
-              <p className="text-xs text-muted-foreground mt-1">{l.quantity_kg} {l.quantity_unit} available</p>
-              <p className="text-xs text-muted-foreground">{l.views_count} views</p>
-            </div>
-          ))}
+        <div className="neo-card p-12 text-center">
+          <Sprout className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">No listings yet. Create your first listing to start selling!</p>
         </div>
 
         {/* Mobile bottom nav */}
         <div className="fixed bottom-0 left-0 right-0 neo-flat rounded-none md:hidden flex justify-around py-2 z-40">
           {nav.slice(0, 5).map(n => (
-            <Link key={n.label} to={n.href} className={`flex flex-col items-center text-xs p-1 ${
-              n.active ? 'text-primary' : 'text-muted-foreground'
-            }`}>
+            <Link key={n.label} to={n.href} className="flex flex-col items-center text-xs p-1 text-muted-foreground">
               <n.icon className="h-5 w-5" />
               <span className="mt-0.5">{n.label}</span>
             </Link>

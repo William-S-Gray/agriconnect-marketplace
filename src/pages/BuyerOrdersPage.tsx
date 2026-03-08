@@ -1,17 +1,10 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { StatusBadge } from '@/components/StatusBadge';
-import { OrderTimeline } from '@/components/OrderTimeline';
 import { useBuyerAuth } from '@/stores/auth-store';
-import { getOrdersByBuyer } from '@/lib/mock-data';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
-
-const statusMap: Record<string, 'order-pending' | 'confirmed' | 'in-season' | 'verified' | 'sold-out'> = {
-  PENDING: 'order-pending', CONFIRMED: 'confirmed', IN_TRANSIT: 'in-season',
-  DELIVERED: 'verified', COMPLETED: 'verified', DISPUTED: 'sold-out', CANCELLED: 'sold-out',
-};
 
 const BuyerOrdersPage = () => {
   const { isAuthenticated } = useBuyerAuth();
@@ -19,9 +12,6 @@ const BuyerOrdersPage = () => {
   const [tab, setTab] = useState('all');
 
   if (!isAuthenticated) { navigate('/login'); return null; }
-
-  const orders = getOrdersByBuyer('b1');
-  const filtered = tab === 'all' ? orders : orders.filter(o => o.status === tab);
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,35 +21,16 @@ const BuyerOrdersPage = () => {
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-6 neo-flat">
-            <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
+            <TabsTrigger value="all">All (0)</TabsTrigger>
             <TabsTrigger value="PENDING">Pending</TabsTrigger>
             <TabsTrigger value="COMPLETED">Completed</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        <div className="space-y-4">
-          {filtered.map(order => (
-            <div key={order.id} className="neo-card p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-heading font-semibold text-foreground">{order.produce_title}</p>
-                  <p className="font-mono text-xs text-muted-foreground">Order #{order.id.toUpperCase()} · {order.created_at}</p>
-                </div>
-                <StatusBadge type={statusMap[order.status] || 'pending'} />
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-sm mb-4">
-                <div><span className="text-muted-foreground">Qty:</span> <span className="font-mono text-foreground">{order.quantity}</span></div>
-                <div><span className="text-muted-foreground">Total:</span> <span className="font-mono price-display">${order.total_amount.toFixed(2)}</span></div>
-                <div><span className="text-muted-foreground">Delivery:</span> <span className="text-foreground">{order.delivery_method}</span></div>
-              </div>
-              <OrderTimeline status={order.status} />
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <div className="text-center py-10">
-              <p className="text-muted-foreground">No orders found. <Link to="/browse" className="text-primary hover:underline">Browse produce</Link></p>
-            </div>
-          )}
+        <div className="text-center py-16">
+          <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground font-medium">No orders found.</p>
+          <Link to="/browse" className="text-primary hover:underline text-sm mt-2 inline-block">Browse produce</Link>
         </div>
       </div>
       <Footer />

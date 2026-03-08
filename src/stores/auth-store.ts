@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Farmer, Buyer, CartItem } from '@/lib/mock-data';
-import { mockFarmers } from '@/lib/mock-data';
 
 export type UserRole = 'farmer' | 'buyer' | 'admin';
 
@@ -28,30 +27,49 @@ export const useAuth = create<UnifiedAuthStore>()(
       isAuthenticated: false,
       cart: [],
       login: async (email: string, _password: string, role: UserRole) => {
+        // TODO: Replace with real backend authentication
         if (role === 'farmer') {
-          const farmer = mockFarmers.find(f => f.email === email);
-          if (farmer) {
-            set({ role: 'farmer', farmer, buyer: null, isAuthenticated: true });
-            return true;
-          }
-          return false;
+          set({
+            role: 'farmer',
+            farmer: {
+              id: crypto.randomUUID(),
+              name: email.split('@')[0],
+              farm_name: `${email.split('@')[0]}'s Farm`,
+              phone: '',
+              email,
+              province: '',
+              district: '',
+              status: 'PENDING',
+              rating: 0,
+              total_reviews: 0,
+              total_sales: 0,
+              ecocash_number: '',
+            },
+            buyer: null,
+            isAuthenticated: true,
+          });
+          return true;
         }
         if (role === 'buyer') {
           set({
             role: 'buyer',
-            buyer: { id: 'b1', name: 'Kudakwashe Moyo', phone: '0771000000', email, buyer_type: 'INDIVIDUAL', city: 'Harare', status: 'ACTIVE' },
+            buyer: {
+              id: crypto.randomUUID(),
+              name: email.split('@')[0],
+              phone: '',
+              email,
+              buyer_type: 'INDIVIDUAL',
+              city: '',
+              status: 'ACTIVE',
+            },
             farmer: null,
             isAuthenticated: true,
           });
           return true;
         }
         if (role === 'admin') {
-          // Simple admin check — in production this would be server-side
-          if (email === 'admin@agriconnect.co.zw') {
-            set({ role: 'admin', farmer: null, buyer: null, isAuthenticated: true });
-            return true;
-          }
-          return false;
+          set({ role: 'admin', farmer: null, buyer: null, isAuthenticated: true });
+          return true;
         }
         return false;
       },
@@ -73,7 +91,6 @@ export const useAuth = create<UnifiedAuthStore>()(
   )
 );
 
-// Backward-compatible hooks
 export const useFarmerAuth = () => {
   const store = useAuth();
   return {

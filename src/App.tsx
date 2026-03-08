@@ -15,6 +15,8 @@ const MarketPricesPage = lazy(() => import("./pages/MarketPricesPage"));
 const FarmerRegisterPage = lazy(() => import("./pages/FarmerRegisterPage"));
 const BuyerRegisterPage = lazy(() => import("./pages/BuyerRegisterPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const FarmerDashboard = lazy(() => import("./pages/FarmerDashboard"));
 const BuyerDashboard = lazy(() => import("./pages/BuyerDashboard"));
 const CartPage = lazy(() => import("./pages/CartPage"));

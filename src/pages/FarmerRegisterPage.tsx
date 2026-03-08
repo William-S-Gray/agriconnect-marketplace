@@ -34,7 +34,7 @@ type FarmerFormData = z.infer<typeof farmerSchema>;
 const FarmerRegisterPage = () => {
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FarmerFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FarmerFormData>({
     resolver: zodResolver(farmerSchema),
   });
 

@@ -239,7 +239,7 @@ const AdminDashboard = () => {
             </div>
             <div className="space-y-4">
               {filteredOrders.map(order => (
-                <div key={order.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={order.id} className="neo-card p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="font-mono text-xs text-muted-foreground">#{order.id.toUpperCase()}</p>

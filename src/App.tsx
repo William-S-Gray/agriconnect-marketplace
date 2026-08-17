@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { AppErrorBoundary, ProtectedRoute } from "@/components/ProtectedRoute";
 import { DemoModeBanner } from "@/components/DemoModeBanner";
+import { SessionAnomalyAlert } from "@/components/SessionAnomalyAlert";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -55,6 +56,9 @@ const App = () => (
         <BrowserRouter>
           {/* FIX: Persistent demo mode banner visible across all pages */}
           <DemoModeBanner />
+          {/* Surfaces session anomalies (privilege escalation, impossible
+              travel, bulk record access) as soon as they are detected. */}
+          <SessionAnomalyAlert />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               {/* Public */}

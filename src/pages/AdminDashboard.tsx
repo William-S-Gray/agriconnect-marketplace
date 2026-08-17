@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Shield, Users, Package, AlertTriangle, BarChart3, DollarSign, Sprout, TrendingUp, CheckCircle2, XCircle, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -8,6 +8,7 @@ import { SEED_FARMERS, SEED_ORDERS, SEED_DISPUTES, SEED_LISTINGS, SEED_PRICES, D
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LazyBarChart } from '@/components/charts/LazyBarChart';
+import { recordDataAccess } from '@/lib/session-anomaly';
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20',
@@ -29,11 +30,26 @@ const weeklyOrders = [
   { day: 'Sun', orders: 4, gmv: 68.90 },
 ];
 
+/** Sensitive record sets exposed per tab, fed to the volume detector. */
+const TAB_RECORD_COUNTS: Record<string, () => number> = {
+  farmers: () => SEED_FARMERS.length,
+  orders: () => SEED_ORDERS.length,
+  disputes: () => SEED_DISPUTES.length,
+  prices: () => SEED_PRICES.length,
+};
+
 function AdminDashboardInner() {
   const [tab, setTab] = useState('overview');
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [farmers, setFarmers] = useState(SEED_FARMERS);
+
+  // Every tab that lists personal or financial records counts toward the
+  // session's data-access volume, so rapid bulk browsing is detectable.
+  useEffect(() => {
+    const count = TAB_RECORD_COUNTS[tab]?.();
+    if (count) recordDataAccess(`admin:${tab}`, count);
+  }, [tab]);
 
   const verifyFarmer = (id: string) => {
     setFarmers(prev => prev.map(f => f.id === id ? { ...f, status: 'VERIFIED' as const } : f));

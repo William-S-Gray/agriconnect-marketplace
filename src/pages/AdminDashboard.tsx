@@ -7,7 +7,7 @@ import { useAuth } from '@/stores/auth-store';
 import { SEED_FARMERS, SEED_ORDERS, SEED_DISPUTES, SEED_LISTINGS, SEED_PRICES, DEMO_STATS } from '@/lib/seed-data';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { LazyBarChart } from '@/components/charts/LazyBarChart';
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20',
@@ -136,14 +136,14 @@ function AdminDashboardInner() {
 
             <div className="neo-card p-6">
               <h3 className="font-heading text-base font-semibold text-foreground mb-4">Weekly Orders &amp; GMV</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={weeklyOrders}>
-                  <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                  <Tooltip contentStyle={{ background: 'var(--card)', border: 'none', borderRadius: 12 }} labelStyle={{ color: 'var(--foreground)' }} />
-                  <Bar yAxisId="left" dataKey="orders" name="Orders" radius={[4, 4, 0, 0]} fill="#4f7c3f" />
-                </BarChart>
-              </ResponsiveContainer>
+              <LazyBarChart
+                data={weeklyOrders}
+                xKey="day"
+                dataKey="orders"
+                name="Orders"
+                height={200}
+                fill="#4f7c3f"
+              />
             </div>
           </div>
         )}
@@ -320,16 +320,15 @@ function AdminDashboardInner() {
             </div>
             <div className="neo-card p-6">
               <h3 className="font-heading text-base font-semibold text-foreground mb-4">Weekly GMV (USD)</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={weeklyOrders}>
-                  <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} />
-                  <YAxis tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }} tickFormatter={v => `$${v}`} />
-                  <Tooltip formatter={(v: number) => [`$${v}`, 'GMV']} contentStyle={{ background: 'var(--card)', border: 'none', borderRadius: 12 }} labelStyle={{ color: 'var(--foreground)' }} />
-                  <Bar dataKey="gmv" name="GMV" radius={[4, 4, 0, 0]}>
-                    {weeklyOrders.map((_, i) => <Cell key={i} fill={i === 4 ? '#f5a623' : '#4f7c3f'} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <LazyBarChart
+                data={weeklyOrders}
+                xKey="day"
+                dataKey="gmv"
+                name="GMV"
+                height={220}
+                currency
+                cellColor={(i) => (i === 4 ? '#f5a623' : '#4f7c3f')}
+              />
             </div>
           </div>
         )}

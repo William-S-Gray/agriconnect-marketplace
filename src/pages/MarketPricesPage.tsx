@@ -5,7 +5,7 @@ import { Footer } from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PROVINCES, CATEGORIES } from '@/lib/mock-data';
 import { SEED_PRICES } from '@/lib/seed-data';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { LazyBarChart } from '@/components/charts/LazyBarChart';
 
 const COLORS = ['#4f7c3f', '#7ab85a', '#a8d87f', '#c8e6a0', '#e8f5c8', '#f0f9e0', '#3d6b2f', '#5a9048', '#78b560'];
 
@@ -72,20 +72,17 @@ const MarketPricesPage = () => {
         {chartData.length > 0 && (
           <div className="neo-card p-6 mb-8">
             <h3 className="font-heading text-base font-semibold text-foreground mb-4">Average Price by Crop (USD / unit)</h3>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickFormatter={v => `$${v}`} />
-                <Tooltip
-                  formatter={(value: number) => [`$${value}`, 'Avg Price']}
-                  contentStyle={{ background: 'var(--card)', border: 'none', borderRadius: 12, boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }}
-                  labelStyle={{ color: 'var(--foreground)', fontWeight: 600 }}
-                />
-                <Bar dataKey="price" radius={[6, 6, 0, 0]}>
-                  {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <LazyBarChart
+              data={chartData}
+              xKey="name"
+              dataKey="price"
+              name="Avg Price"
+              height={220}
+              currency
+              radius={[6, 6, 0, 0]}
+              margin={{ top: 0, right: 0, left: -10, bottom: 0 }}
+              cellColor={(i) => COLORS[i % COLORS.length]}
+            />
           </div>
         )}
 

@@ -13,13 +13,19 @@
     <meta property="og:title" content="AgriConnect — Fresh From Zimbabwe's Farms" />
     <meta property="og:description" content="Buy fresh produce direct from verified Zimbabwe farmers. Better prices, EcoCash secured payments." />
     <meta property="og:type" content="website" />
-    <!-- og:image intentionally omitted: add a real 1200x630 PNG at /og-image.png
-         and re-add the og:image / twitter:image tags. The previous tags pointed
-         at lovable.dev's placeholder artwork and @Lovable's Twitter handle. -->
+    <!-- %OG_BASE% is replaced at build time from VITE_SITE_URL (see vite.config.ts).
+         Unset it and these fall back to root-relative paths. -->
+    <meta property="og:image" content="%OG_BASE%/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AgriConnect — Fresh From Zimbabwe's Farms" />
 
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="AgriConnect — Fresh From Zimbabwe's Farms" />
     <meta name="twitter:description" content="Buy fresh produce direct from verified Zimbabwe farmers. Better prices, EcoCash secured payments." />
+    <meta name="twitter:image" content="%OG_BASE%/og-image.png" />
+    <meta name="twitter:image:alt" content="AgriConnect — Fresh From Zimbabwe's Farms" />
 
     <!--
       Apply the saved theme before first paint. Without this the page renders in

@@ -12,11 +12,13 @@ This build runs in **Demo Mode** — all data is seeded and no real payments are
 
 | Role    | Email                        | Password     | Dashboard URL       |
 |---------|------------------------------|--------------|---------------------|
-| Farmer  | `john@moyofarm.co.zw`        | any password | `/farm/dashboard`   |
-| Buyer   | `kuda@email.co.zw`           | any password | `/buyer/dashboard`  |
-| Admin   | `admin@agriconnect.co.zw`    | any password | `/admin` (via `/admin/login`) |
+| Farmer  | `john@moyofarm.co.zw`        | `Demo@1234`  | `/farm/dashboard`   |
+| Buyer   | `kuda@email.co.zw`           | `Demo@1234`  | `/buyer/dashboard`  |
+| Admin   | `admin@agriconnect.co.zw`    | `Demo@1234`  | `/admin` (via `/admin/login`) |
 
-> **Admin login is intentionally NOT linked from the public login page** — navigate directly to `/admin/login`.
+Every seeded account shares the same demo password, defined as `DEMO_PASSWORD` in `src/lib/demo-credentials.ts`. Logins are actually verified — an unknown email or a wrong password is rejected, and 5 failed attempts lock the account for 15 minutes. Accounts created through the registration form sign in with the password chosen there.
+
+> **Admin login is intentionally NOT linked from the public login page** — navigate directly to `/admin/login`. The admin email is an exact-match allowlist, not a pattern.
 
 ---
 
@@ -45,13 +47,18 @@ npm run preview
 ```
 src/
 ├── components/
+│   ├── charts/                  # BarChartPanel (the only recharts importer) + LazyBarChart wrapper
 │   ├── DemoModeBanner.tsx       # Persistent "Demo Mode" banner across all pages
 │   ├── EcoCashModal.tsx         # Functional EcoCash payment simulation (PIN → processing → receipt)
 │   ├── ProtectedRoute.tsx       # ProtectedRoute wrapper + AppErrorBoundary
+│   ├── SessionAnomalyAlert.tsx  # Real-time banner for detected session anomalies
 │   └── ...existing components
 ├── lib/
+│   ├── account-lockout.ts       # 5 failed attempts → 15 minute lockout
+│   ├── demo-credentials.ts      # DEMO_PASSWORD, credential verification, admin allowlist
 │   ├── mock-data.ts             # TypeScript interfaces + helpers (calculateOrder, PROVINCES, etc.)
 │   ├── seed-data.ts             # Comprehensive seed: 8 farmers, 12 listings, 5 orders, 18 prices, 1 dispute
+│   ├── session-anomaly.ts       # Privilege escalation, impossible travel, data volume detectors
 │   └── ...existing lib files
 ├── pages/
 │   ├── AdminDashboard.tsx       # Protected (/admin/login) — full farmer verification, orders, disputes, analytics
@@ -96,7 +103,7 @@ src/
 | **Admin Dashboard — Full Workflow** | Seeded stats, weekly chart, farmer verification queue (Verify/Reject buttons), orders table, disputes with action buttons, price table, analytics chart. |
 | **Market Prices Page** | Populated table from 18 seed price records. Recharts bar chart for avg price per crop. Filterable by province and category. |
 | **QueryClient Configuration** | Configured with `staleTime: 5min`, no retry on 401/403 errors (prevents auth hammering). |
-| **Zustand Version Key** | `_version: 2` in persisted store. Stale localStorage state is cleared on schema change. Migrated to new key `agriconnect-auth-v2`. |
+| **Zustand Version Key** | `_version` in persisted store (currently `4`). Stale localStorage state is cleared on schema change. Migrated to new key `agriconnect-auth-v2`. |
 
 ### 🟡 Medium Fixes
 
@@ -119,7 +126,7 @@ These are acknowledged limitations that require backend work:
 1. **No real backend** — Authentication, persistence, and orders are simulated. No real database.
 2. **EcoCash API not integrated** — Simulation only. Real integration requires [Paynow Zimbabwe SDK](https://developers.paynow.co.zw/).
 3. **No PWA / Offline support** — No service worker. Critical for rural Zimbabwe connectivity.
-4. **No automated tests** — `calculateOrder`, cart logic, and auth flows have no test coverage.
+4. **Partial test coverage** — Auth (credential verification, admin allowlist, account lockout) and session anomaly detection are covered by 33 tests via `npm run test`. `calculateOrder`, cart logic, and component rendering are still untested.
 5. **No i18n** — English only. Shona and Ndebele support needed for rural farmers.
 6. **No real file storage** — Photos selected but not persisted anywhere across sessions.
 7. **No real farmer verification workflow** — Admin actions in demo mode do not persist to a database.
@@ -136,7 +143,8 @@ These are acknowledged limitations that require backend work:
 - [ ] Cloudinary or S3 for produce photo upload
 - [ ] Farmer verification workflow with document upload
 - [ ] Real-time order status via Supabase Realtime or polling
-- [ ] Unit tests for `calculateOrder`, cart, auth logic
+- [x] Unit tests for auth logic and session anomaly detection
+- [ ] Unit tests for `calculateOrder`, cart logic, and component rendering
 
 ### Round 3 — Production (1–3 months)
 - [ ] PWA + Service Worker for offline listing browsing
@@ -159,6 +167,20 @@ Authentication is simulated client-side for demo purposes. In production:
 - Move account lockout logic to server-side (Redis-backed rate limiting)
 - Use bcrypt for password hashing
 
+### Session Anomaly Detection (Demo Mode)
+`src/lib/session-anomaly.ts` watches an authenticated session for three signals, surfaced immediately by `SessionAnomalyAlert` at the app root:
+
+| Signal | Trigger |
+|--------|---------|
+| **Privilege escalation** | The persisted session no longer matches the fingerprint issued at login — e.g. `role` edited to `admin` in devtools. The session is ended and cleared before any protected route renders. |
+| **Impossible travel** | The session's location signal changes within 90 minutes (critical), or later (warning). |
+| **Data access volume** | More than 150 sensitive records read inside a 60s window. |
+
+**This is detection, not enforcement.** It runs in the browser, so it can be bypassed by simply not running it, and the fingerprint checksum salt ships in the bundle. It raises the bar against casual `localStorage` tampering — nothing more. In production:
+- Enforce authorization server-side; never trust a client-reported role
+- Replace the timezone proxy in `resolveLocation()` with server-side geo-IP
+- Move the detectors server-side, where the event log cannot be discarded by the client
+
 ### Payment Flow (Demo Mode)
 The EcoCash modal simulates the USSD payment flow. In production:
 1. Call Paynow Zimbabwe API to initiate payment
@@ -168,7 +190,7 @@ The EcoCash modal simulates the USSD payment flow. In production:
 
 ### State Management
 - **Zustand** with `persist` middleware handles auth + cart
-- Version key `_version: 2` in `agriconnect-auth-v2` localStorage key
+- Version key `_version` (currently `4`) in the `agriconnect-auth-v2` localStorage key
 - Bump `STORE_VERSION` constant whenever the persisted schema changes
 
 ---

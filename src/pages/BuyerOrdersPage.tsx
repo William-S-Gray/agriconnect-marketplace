@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useBuyerAuth } from '@/stores/auth-store';
@@ -8,10 +8,9 @@ import { useState } from 'react';
 
 const BuyerOrdersPage = () => {
   const { isAuthenticated } = useBuyerAuth();
-  const navigate = useNavigate();
   const [tab, setTab] = useState('all');
 
-  if (!isAuthenticated) { navigate('/login'); return null; }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
     <div className="min-h-screen bg-background">

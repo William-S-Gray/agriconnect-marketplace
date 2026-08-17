@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { BarChart3, Sprout, Package, DollarSign, Settings, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ const nav = [
 
 const FarmerProfileEditPage = () => {
   const { farmer, logout } = useFarmerAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [form, setForm] = useState({
@@ -29,7 +28,7 @@ const FarmerProfileEditPage = () => {
     ecocash_number: farmer?.ecocash_number || '', farm_size_ha: farmer?.farm_size_ha?.toString() || '',
   });
 
-  if (!farmer) { navigate('/login'); return null; }
+  if (!farmer) return <Navigate to="/login" replace />;
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 

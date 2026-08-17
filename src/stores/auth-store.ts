@@ -1,10 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Farmer, Buyer, CartItem } from '@/lib/mock-data';
+import { verifyFarmer, verifyBuyer, verifyAdmin } from '@/lib/demo-credentials';
 
 export type UserRole = 'farmer' | 'buyer' | 'admin';
 
+// Bumped to 3: v2 sessions were created by a login that accepted any password,
+// so they must not be trusted after this change.
+const STORE_VERSION = 3;
+
 interface UnifiedAuthStore {
+  _version: number;
   role: UserRole | null;
   farmer: Farmer | null;
   buyer: Buyer | null;
@@ -21,73 +27,61 @@ interface UnifiedAuthStore {
 export const useAuth = create<UnifiedAuthStore>()(
   persist(
     (set, get) => ({
+      _version: STORE_VERSION,
       role: null,
       farmer: null,
       buyer: null,
       isAuthenticated: false,
       cart: [],
-      login: async (email: string, _password: string, role: UserRole) => {
-        // TODO: Replace with real backend authentication
+
+      login: async (email: string, password: string, role: UserRole) => {
+        if (!email || !password) return false;
+
         if (role === 'farmer') {
-          set({
-            role: 'farmer',
-            farmer: {
-              id: crypto.randomUUID(),
-              name: email.split('@')[0],
-              farm_name: `${email.split('@')[0]}'s Farm`,
-              phone: '',
-              email,
-              province: '',
-              district: '',
-              status: 'PENDING',
-              rating: 0,
-              total_reviews: 0,
-              total_sales: 0,
-              ecocash_number: '',
-            },
-            buyer: null,
-            isAuthenticated: true,
-          });
+          const farmerProfile = verifyFarmer(email, password);
+          if (!farmerProfile) return false;
+          set({ role: 'farmer', farmer: farmerProfile, buyer: null, isAuthenticated: true });
           return true;
         }
+
         if (role === 'buyer') {
-          set({
-            role: 'buyer',
-            buyer: {
-              id: crypto.randomUUID(),
-              name: email.split('@')[0],
-              phone: '',
-              email,
-              buyer_type: 'INDIVIDUAL',
-              city: '',
-              status: 'ACTIVE',
-            },
-            farmer: null,
-            isAuthenticated: true,
-          });
+          const buyerProfile = verifyBuyer(email, password);
+          if (!buyerProfile) return false;
+          set({ role: 'buyer', buyer: buyerProfile, farmer: null, isAuthenticated: true });
           return true;
         }
+
         if (role === 'admin') {
+          if (!verifyAdmin(email, password)) return false;
           set({ role: 'admin', farmer: null, buyer: null, isAuthenticated: true });
           return true;
         }
+
         return false;
       },
+
       logout: () => set({ role: null, farmer: null, buyer: null, isAuthenticated: false, cart: [] }),
+
       addToCart: (item) => {
         const existing = get().cart.find(c => c.listingId === item.listingId);
         if (existing) {
-          set({ cart: get().cart.map(c => c.listingId === item.listingId ? { ...c, quantity: c.quantity + item.quantity } : c) });
+          set({ cart: get().cart.map(c => c.listingId === item.listingId ? { ...c, quantity: Math.min(c.maxAvailable, c.quantity + item.quantity) } : c) });
         } else {
           set({ cart: [...get().cart, item] });
         }
       },
       removeFromCart: (listingId) => set({ cart: get().cart.filter(c => c.listingId !== listingId) }),
-      updateCartQuantity: (listingId, quantity) =>
-        set({ cart: get().cart.map(c => c.listingId === listingId ? { ...c, quantity } : c) }),
+      updateCartQuantity: (listingId, quantity) => set({ cart: get().cart.map(c => c.listingId === listingId ? { ...c, quantity } : c) }),
       clearCart: () => set({ cart: [] }),
     }),
-    { name: 'agriconnect-auth' }
+    {
+      name: 'agriconnect-auth-v2',
+      onRehydrateStorage: () => (state) => {
+        if (state && state._version !== STORE_VERSION) {
+          Object.assign(state, { role: null, farmer: null, buyer: null, isAuthenticated: false, cart: [], _version: STORE_VERSION });
+        }
+      },
+    }
   )
 );
 

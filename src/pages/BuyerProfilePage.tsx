@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { Save } from 'lucide-react';
 
 const BuyerProfilePage = () => {
   const { buyer, isAuthenticated } = useBuyerAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [form, setForm] = useState({
@@ -20,7 +19,7 @@ const BuyerProfilePage = () => {
     city: buyer?.city || '', buyer_type: buyer?.buyer_type || 'INDIVIDUAL',
   });
 
-  if (!isAuthenticated || !buyer) { navigate('/login'); return null; }
+  if (!isAuthenticated || !buyer) return <Navigate to="/login" replace />;
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 

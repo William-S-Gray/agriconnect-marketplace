@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { registerDemoBuyer, isEmailTaken } from '@/lib/demo-credentials';
+import type { Buyer } from '@/lib/mock-data';
 
 const buyerSchema = z.object({
   name: z.string().min(3),
@@ -29,8 +31,25 @@ const BuyerRegisterPage = () => {
     resolver: zodResolver(buyerSchema),
   });
 
-  const onSubmit = () => {
-    toast.success('Account created!');
+  const onSubmit = (data: BuyerFormData) => {
+    if (isEmailTaken(data.email)) {
+      toast.error('An account with that email already exists.');
+      return;
+    }
+    // Register the account so the user can actually sign in with it afterwards.
+    registerDemoBuyer(
+      {
+        id: crypto.randomUUID(),
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        buyer_type: data.buyer_type as Buyer['buyer_type'],
+        city: data.city,
+        status: 'ACTIVE',
+      },
+      data.password,
+    );
+    toast.success('Account created! You can now sign in.');
     navigate('/login');
   };
 

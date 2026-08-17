@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { BarChart3, Sprout, Package, DollarSign, Settings, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,20 +22,39 @@ const nav = [
   { icon: Settings, label: 'Profile', href: '/farm/profile' },
 ];
 
+interface ListingForm {
+  title: string;
+  category: string;
+  produce_type: string;
+  description: string;
+  is_organic: boolean;
+  quantity: string;
+  unit: string;
+  price: string;
+  min_order: string;
+  harvest_date: string;
+  available_until: string;
+  delivery_pickup: boolean;
+  delivery_local: boolean;
+  delivery_negotiable: boolean;
+}
+
 const NewListingPage = () => {
   const { farmer, logout } = useFarmerAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ListingForm>({
     title: '', category: '', produce_type: '', description: '', is_organic: false,
     quantity: '', unit: 'kg', price: '', min_order: '1', harvest_date: '', available_until: '',
     delivery_pickup: true, delivery_local: false, delivery_negotiable: false,
   });
 
-  if (!farmer) { navigate('/login'); return null; }
+  if (!farmer) return <Navigate to="/login" replace />;
 
-  const update = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  // Keyed update that stays type-safe: the value must match the field's own type.
+  const update = <K extends keyof ListingForm>(key: K, value: ListingForm[K]) =>
+    setForm(prev => ({ ...prev, [key]: value }));
   const progress = (step / 3) * 100;
 
   const handlePublish = () => {
@@ -93,9 +112,9 @@ const NewListingPage = () => {
               <div>
                 <Label className="mb-3 block text-foreground">Delivery Options</Label>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2"><Checkbox checked={form.delivery_pickup} onCheckedChange={v => update('delivery_pickup', v)} /><span className="text-sm text-foreground">Pickup at farm</span></div>
-                  <div className="flex items-center gap-2"><Checkbox checked={form.delivery_local} onCheckedChange={v => update('delivery_local', v)} /><span className="text-sm text-foreground">I can deliver (within district)</span></div>
-                  <div className="flex items-center gap-2"><Checkbox checked={form.delivery_negotiable} onCheckedChange={v => update('delivery_negotiable', v)} /><span className="text-sm text-foreground">Delivery negotiable</span></div>
+                  <div className="flex items-center gap-2"><Checkbox checked={form.delivery_pickup} onCheckedChange={v => update('delivery_pickup', v === true)} /><span className="text-sm text-foreground">Pickup at farm</span></div>
+                  <div className="flex items-center gap-2"><Checkbox checked={form.delivery_local} onCheckedChange={v => update('delivery_local', v === true)} /><span className="text-sm text-foreground">I can deliver (within district)</span></div>
+                  <div className="flex items-center gap-2"><Checkbox checked={form.delivery_negotiable} onCheckedChange={v => update('delivery_negotiable', v === true)} /><span className="text-sm text-foreground">Delivery negotiable</span></div>
                 </div>
               </div>
               <div className="flex gap-3">

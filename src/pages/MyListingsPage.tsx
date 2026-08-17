@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { BarChart3, Sprout, Package, DollarSign, Settings, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
@@ -14,9 +14,8 @@ const nav = [
 
 const MyListingsPage = () => {
   const { farmer, logout } = useFarmerAuth();
-  const navigate = useNavigate();
 
-  if (!farmer) { navigate('/login'); return null; }
+  if (!farmer) return <Navigate to="/login" replace />;
 
   return (
     <div className="min-h-screen bg-background flex">

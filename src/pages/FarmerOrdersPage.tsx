@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { BarChart3, Sprout, Package, DollarSign, Settings } from 'lucide-react';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,10 +15,9 @@ const nav = [
 
 const FarmerOrdersPage = () => {
   const { farmer, logout } = useFarmerAuth();
-  const navigate = useNavigate();
   const [tab, setTab] = useState('all');
 
-  if (!farmer) { navigate('/login'); return null; }
+  if (!farmer) return <Navigate to="/login" replace />;
 
   return (
     <div className="min-h-screen bg-background flex">

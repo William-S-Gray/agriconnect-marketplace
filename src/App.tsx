@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { AppErrorBoundary, ProtectedRoute } from "@/components/ProtectedRoute";
+import { DemoModeBanner } from "@/components/DemoModeBanner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -15,6 +17,7 @@ const MarketPricesPage = lazy(() => import("./pages/MarketPricesPage"));
 const FarmerRegisterPage = lazy(() => import("./pages/FarmerRegisterPage"));
 const BuyerRegisterPage = lazy(() => import("./pages/BuyerRegisterPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const FarmerDashboard = lazy(() => import("./pages/FarmerDashboard"));
@@ -29,46 +32,69 @@ const BuyerOrdersPage = lazy(() => import("./pages/BuyerOrdersPage"));
 const BuyerProfilePage = lazy(() => import("./pages/BuyerProfilePage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
-const queryClient = new QueryClient();
+// FIX: Properly configured QueryClient — no retry on auth errors, 5 min stale time
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: (failureCount, error: unknown) => {
+        const status = (error as { status?: number })?.status;
+        if (status === 401 || status === 403) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/browse" element={<BrowsePage />} />
-            <Route path="/listing/:id" element={<ListingDetailPage />} />
-            <Route path="/farmer/:id" element={<FarmerProfilePage />} />
-            <Route path="/prices" element={<MarketPricesPage />} />
-            <Route path="/farmer/register" element={<FarmerRegisterPage />} />
-            <Route path="/buyer/register" element={<BuyerRegisterPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            {/* Legacy login routes redirect to unified login */}
-            <Route path="/farmer/login" element={<LoginPage />} />
-            <Route path="/buyer/login" element={<LoginPage />} />
-            <Route path="/farm/dashboard" element={<FarmerDashboard />} />
-            <Route path="/farm/listings" element={<MyListingsPage />} />
-            <Route path="/farm/listings/new" element={<NewListingPage />} />
-            <Route path="/farm/orders" element={<FarmerOrdersPage />} />
-            <Route path="/farm/earnings" element={<EarningsPage />} />
-            <Route path="/farm/profile" element={<FarmerProfileEditPage />} />
-            <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
-            <Route path="/buyer/orders" element={<BuyerOrdersPage />} />
-            <Route path="/buyer/cart" element={<CartPage />} />
-            <Route path="/buyer/profile" element={<BuyerProfilePage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          {/* FIX: Persistent demo mode banner visible across all pages */}
+          <DemoModeBanner />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<Index />} />
+              <Route path="/browse" element={<BrowsePage />} />
+              <Route path="/listing/:id" element={<ListingDetailPage />} />
+              <Route path="/farmer/:id" element={<FarmerProfilePage />} />
+              <Route path="/prices" element={<MarketPricesPage />} />
+              <Route path="/farmer/register" element={<FarmerRegisterPage />} />
+              <Route path="/buyer/register" element={<BuyerRegisterPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              {/* FIX: Admin login is now a separate, unlisted route */}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              {/* Legacy login redirects */}
+              <Route path="/farmer/login" element={<LoginPage />} />
+              <Route path="/buyer/login" element={<LoginPage />} />
+              {/* Protected — farmer. Guards live here so every route is covered
+                  by construction, rather than depending on each page to guard itself. */}
+              <Route path="/farm/dashboard" element={<ProtectedRoute role="farmer"><FarmerDashboard /></ProtectedRoute>} />
+              <Route path="/farm/listings" element={<ProtectedRoute role="farmer"><MyListingsPage /></ProtectedRoute>} />
+              <Route path="/farm/listings/new" element={<ProtectedRoute role="farmer"><NewListingPage /></ProtectedRoute>} />
+              <Route path="/farm/orders" element={<ProtectedRoute role="farmer"><FarmerOrdersPage /></ProtectedRoute>} />
+              <Route path="/farm/earnings" element={<ProtectedRoute role="farmer"><EarningsPage /></ProtectedRoute>} />
+              <Route path="/farm/profile" element={<ProtectedRoute role="farmer"><FarmerProfileEditPage /></ProtectedRoute>} />
+              {/* Protected — buyer */}
+              <Route path="/buyer/dashboard" element={<ProtectedRoute role="buyer"><BuyerDashboard /></ProtectedRoute>} />
+              <Route path="/buyer/orders" element={<ProtectedRoute role="buyer"><BuyerOrdersPage /></ProtectedRoute>} />
+              <Route path="/buyer/cart" element={<CartPage />} />
+              <Route path="/buyer/profile" element={<ProtectedRoute role="buyer"><BuyerProfilePage /></ProtectedRoute>} />
+              {/* Protected — admin (redirects to /admin/login, not /login) */}
+              <Route path="/admin" element={<ProtectedRoute role="admin" redirectTo="/admin/login"><AdminDashboard /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

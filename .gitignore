@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Local env files — keep secrets (payment keys, API tokens) out of the repo.
+# .env.example is tracked deliberately as documentation.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

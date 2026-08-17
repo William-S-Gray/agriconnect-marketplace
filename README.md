@@ -1,52 +1,202 @@
-## Project info
+# AgriConnect — Zimbabwe Agricultural Marketplace
 
+> **Demo-ready React/TypeScript SPA** connecting Zimbabwean farmers directly with buyers, with EcoCash payment simulation, escrow flow, and admin oversight.
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🌱 Demo Mode
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+This build runs in **Demo Mode** — all data is seeded and no real payments are processed. A persistent banner at the top of every page makes this clear.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Demo Credentials
 
-Follow these steps:
+| Role    | Email                        | Password     | Dashboard URL       |
+|---------|------------------------------|--------------|---------------------|
+| Farmer  | `john@moyofarm.co.zw`        | any password | `/farm/dashboard`   |
+| Buyer   | `kuda@email.co.zw`           | any password | `/buyer/dashboard`  |
+| Admin   | `admin@agriconnect.co.zw`    | any password | `/admin` (via `/admin/login`) |
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+> **Admin login is intentionally NOT linked from the public login page** — navigate directly to `/admin/login`.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🚀 Quick Start
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-**Edit a file directly in GitHub**
+**Requirements:** Node.js 18+, npm 9+
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 📁 Project Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+├── components/
+│   ├── DemoModeBanner.tsx       # Persistent "Demo Mode" banner across all pages
+│   ├── EcoCashModal.tsx         # Functional EcoCash payment simulation (PIN → processing → receipt)
+│   ├── ProtectedRoute.tsx       # ProtectedRoute wrapper + AppErrorBoundary
+│   └── ...existing components
+├── lib/
+│   ├── mock-data.ts             # TypeScript interfaces + helpers (calculateOrder, PROVINCES, etc.)
+│   ├── seed-data.ts             # Comprehensive seed: 8 farmers, 12 listings, 5 orders, 18 prices, 1 dispute
+│   └── ...existing lib files
+├── pages/
+│   ├── AdminDashboard.tsx       # Protected (/admin/login) — full farmer verification, orders, disputes, analytics
+│   ├── AdminLoginPage.tsx       # Unlisted admin login at /admin/login
+│   ├── BuyerDashboard.tsx       # Protected — seeded active orders, recommended produce
+│   ├── CartPage.tsx             # Functional EcoCash checkout → order confirmation → navigate to dashboard
+│   ├── FarmerDashboard.tsx      # Protected — seeded stats, pending orders, listings list
+│   ├── FarmerRegisterPage.tsx   # Multi-step with per-step validation, real file upload, password toggles
+│   ├── Index.tsx                # Homepage with seeded listings, verified farmers, live stats
+│   ├── LoginPage.tsx            # Admin removed from public selector (use /admin/login)
+│   └── MarketPricesPage.tsx     # Populated price table + Recharts bar chart
+├── stores/
+│   └── auth-store.ts            # Zustand store — versioned persistence, login validation, cart
+└── App.tsx                      # AppErrorBoundary, DemoModeBanner, QueryClient config, admin route
+```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## ✅ What Was Fixed (Expert Panel Review — All Phases)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 🔴 Critical Fixes
 
+| Fix | Description |
+|-----|-------------|
+| **Seed Data** | `seed-data.ts` — 8 farmers, 12 listings, 5 orders, 18 price records, 1 dispute, 1 review. Every dashboard and page now shows real content. |
+| **Demo Mode Banner** | Persistent `DemoModeBanner` across all pages — honest framing, shows demo credentials, dismissable. |
+| **EcoCash Checkout** | `EcoCashModal` — realistic USSD simulation: PIN entry → 3s processing → escrow confirmation + order reference. Clears cart and navigates on success. |
+| **Route Protection** | `ProtectedRoute` component wraps all farmer, buyer, admin dashboards. Unauthenticated users redirect to login. |
+| **Admin Separated** | Admin removed from public `/login` role selector. Admin-only login at `/admin/login`. Admin dashboard redirects to `/admin/login` (not `/login`). |
+| **App Error Boundary** | `AppErrorBoundary` wraps entire app. Unhandled render errors show a recovery UI instead of a blank screen. |
 
+### 🟠 High-Priority Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **Login Form Validation** | `zod` schema enforces required email + password. Submit button disabled + shows spinner during async call. |
+| **Password Visibility Toggles** | Eye/EyeOff toggle on all password fields across Login, FarmerRegister. |
+| **Step Validation in Registration** | `trigger(step1Fields)` called before `setStep(2)` — cannot advance with invalid step 1 data. |
+| **Real File Upload** | `<input type="file">` with `FileReader` preview in `FarmerRegisterPage`. Shows thumbnail + remove option. |
+| **Farmer Dashboard — Live Stats** | Revenue, listing count, order count, rating pulled from seed data. Time-aware greeting (morning/afternoon/evening). |
+| **Buyer Dashboard — Active Orders** | Seeded orders displayed with status badges. Recommended listings grid. Real total spent. |
+| **Admin Dashboard — Full Workflow** | Seeded stats, weekly chart, farmer verification queue (Verify/Reject buttons), orders table, disputes with action buttons, price table, analytics chart. |
+| **Market Prices Page** | Populated table from 18 seed price records. Recharts bar chart for avg price per crop. Filterable by province and category. |
+| **QueryClient Configuration** | Configured with `staleTime: 5min`, no retry on 401/403 errors (prevents auth hammering). |
+| **Zustand Version Key** | `_version: 2` in persisted store. Stale localStorage state is cleared on schema change. Migrated to new key `agriconnect-auth-v2`. |
+
+### 🟡 Medium Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **Mobile Nav Padding** | `pb-24 md:pb-8` on FarmerDashboard main content — last items no longer hidden behind fixed mobile nav bar. |
+| **Homepage Stats** | Shows `7 Verified Farmers`, `12 Active Listings`, `10 Provinces` from seed data (not zeros). |
+| **"Why Zimbabwe" Section** | New homepage section explaining EcoCash native, vs WhatsApp groups, no middlemen, 10 provinces. |
+| **Homepage Listings** | "In Season Now" grid shows first 4 seeded listings via `ProduceCard`. |
+| **Featured Farmers** | 3 verified seed farmers shown with rating and province. |
+| **Cart Emoji** | Produce emojis mapped by title keyword for visual polish. |
+| **Double-Submit Prevention** | `isSubmitting` state on all form submit buttons — disabled during async operations. |
+
+---
+
+## 🗺️ Remaining Limitations (Round 2+ — See Roadmap)
+
+These are acknowledged limitations that require backend work:
+
+1. **No real backend** — Authentication, persistence, and orders are simulated. No real database.
+2. **EcoCash API not integrated** — Simulation only. Real integration requires [Paynow Zimbabwe SDK](https://developers.paynow.co.zw/).
+3. **No PWA / Offline support** — No service worker. Critical for rural Zimbabwe connectivity.
+4. **No automated tests** — `calculateOrder`, cart logic, and auth flows have no test coverage.
+5. **No i18n** — English only. Shona and Ndebele support needed for rural farmers.
+6. **No real file storage** — Photos selected but not persisted anywhere across sessions.
+7. **No real farmer verification workflow** — Admin actions in demo mode do not persist to a database.
+8. **USSD/SMS alternative** — Feature phone users not supported.
+
+---
+
+## 🛣️ Roadmap
+
+### Round 2 — MVP (1–2 weeks)
+- [ ] Backend: Supabase (PostgreSQL + Auth + Storage) or Node.js/Express
+- [ ] Real JWT authentication with refresh tokens
+- [ ] Paynow Zimbabwe / EcoCash merchant API integration
+- [ ] Cloudinary or S3 for produce photo upload
+- [ ] Farmer verification workflow with document upload
+- [ ] Real-time order status via Supabase Realtime or polling
+- [ ] Unit tests for `calculateOrder`, cart, auth logic
+
+### Round 3 — Production (1–3 months)
+- [ ] PWA + Service Worker for offline listing browsing
+- [ ] WCAG 2.1 AA accessibility audit
+- [ ] Shona + Ndebele language support (i18n)
+- [ ] USSD/SMS fallback for feature phone farmers
+- [ ] GPS-based farmer discovery
+- [ ] Push notifications (order updates, price alerts)
+- [ ] Penetration testing + OWASP Top 10 review
+- [ ] Zimbabwe Cybersecurity & Data Protection Act 2021 compliance
+
+---
+
+## 🏗️ Architecture Notes
+
+### Authentication (Demo Mode)
+Authentication is simulated client-side for demo purposes. In production:
+- Replace `auth-store.ts` `login()` with a `POST /api/auth/login` call
+- Store JWT in memory (not localStorage) with refresh token in httpOnly cookie
+- Move account lockout logic to server-side (Redis-backed rate limiting)
+- Use bcrypt for password hashing
+
+### Payment Flow (Demo Mode)
+The EcoCash modal simulates the USSD payment flow. In production:
+1. Call Paynow Zimbabwe API to initiate payment
+2. Poll `/api/orders/:id/payment-status` for confirmation
+3. Webhook handler updates order `payment_status` to `HELD_ESCROW`
+4. Release escrow to farmer after buyer confirms delivery
+
+### State Management
+- **Zustand** with `persist` middleware handles auth + cart
+- Version key `_version: 2` in `agriconnect-auth-v2` localStorage key
+- Bump `STORE_VERSION` constant whenever the persisted schema changes
+
+---
+
+## 🔧 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | React 18 + TypeScript |
+| Build | Vite |
+| Routing | React Router v6 |
+| State | Zustand (with persistence) |
+| Forms | React Hook Form + Zod |
+| Data Fetching | TanStack Query v5 |
+| Styling | Tailwind CSS + shadcn/ui |
+| Charts | Recharts |
+| Toasts | Sonner |
+
+---
+
+## 📞 Zimbabwe Context
+
+- **EcoCash** (Econet Wireless Zimbabwe) is Zimbabwe's dominant mobile money platform with 9M+ subscribers
+- **Target problem**: Smallholder farmers earn 40–60% of crop value; the rest goes to middlemen and market fees
+- **Existing alternatives**: WhatsApp groups (no verification, no payment protection), physical markets (Mbare, Mvuma), Cold storage intermediaries
+- **Phone number format**: `^(\+263|0)(7[1-8])\d{7}$` covers Econet (77x), NetOne (71x), Telecel (73x)
+- **Currency**: USD (primary), ZiG (Zimbabwe Gold — optional multi-currency support in roadmap)
+
+---
+
+*AgriConnect — Built for Zimbabwe's farmers. Review conducted and fixes implemented based on Multidisciplinary Expert Panel report.*

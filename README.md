@@ -36,9 +36,20 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Run tests
+npm run test
 ```
 
 **Requirements:** Node.js 18+, npm 9+
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in as needed. Only `VITE_`-prefixed variables reach the client build, and real `.env` files are gitignored.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `VITE_SITE_URL` | No | Public base URL of the deployed site, no trailing slash (e.g. `https://agriconnect.co.zw`). Makes the `og:image` / `twitter:image` tags absolute, which social crawlers prefer. Unset, they fall back to root-relative paths — fine locally, less reliable across crawlers. **Set this at deploy time to make link previews work properly.** |
 
 ---
 

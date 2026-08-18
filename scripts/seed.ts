@@ -14,6 +14,7 @@
  */
 import { hash } from '@node-rs/argon2';
 import { sql, pool } from '../lib/pool';
+import { describeError, connectionHint } from '../lib/describe-error';
 import { randomUUID } from 'node:crypto';
 import {
   SEED_FARMERS,
@@ -237,8 +238,10 @@ main()
   .then(() => pool.end())
   .catch(async (err) => {
     await pool.end().catch(() => {});
-  // Log the message only. A full error object from the driver can include the
-  // connection string, which must never reach logs.
-    console.error('Seed failed:', err instanceof Error ? err.message : 'unknown error');
+    // describeError unwraps aggregate causes and redacts credentials, so the
+    // connection string never reaches the logs.
+    console.error('Seed failed:', describeError(err));
+    const hint = connectionHint(err);
+    if (hint) console.error(hint);
     process.exit(1);
   });

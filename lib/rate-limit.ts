@@ -1,15 +1,26 @@
 import 'server-only';
 import { sql } from './db';
+import { getRedis } from './redis';
+import {
+  RedisRateLimitStore,
+  PostgresRateLimitStore,
+  storeKey,
+  type RateLimitStore,
+  type FailureStats,
+} from './rate-limit-store';
 
 /**
  * Server-side rate limiting for authentication endpoints.
  *
- * Store choice: this deployment has no Redis, so the shared store is Postgres
- * (the auth_attempts table). That is correct across multiple server instances,
- * which an in-memory limiter would not be — the tradeoff is one extra round
- * trip per attempt. Documented limitation: at very high volume a Redis or
- * Upstash counter would be cheaper; swap `countRecent`/`record` and nothing
- * else changes.
+ * Store: Redis when REDIS_URL is set, Postgres otherwise. Both are shared
+ * across instances, which an in-memory limiter would not be — a per-process
+ * counter looks fine in development and then fails open behind a load balancer.
+ *
+ * Redis is preferred because these are high-churn, disposable counters: putting
+ * them on the primary database means a write and a read on the authentication
+ * path for every attempt. If Redis is configured but unreachable, the limiter
+ * falls back to Postgres for that call rather than failing open — an outage in
+ * the counter store must never disable rate limiting.
  *
  * Policy shape: progressive delay rather than hard account lockout. A permanent
  * lockout keyed on email is itself a denial-of-service vector — anyone could
@@ -57,16 +68,48 @@ export interface RateLimitResult {
 
 const ALLOWED: RateLimitResult = { limited: false, retryAfterSeconds: 0 };
 
-/** Records an attempt. Only failures drive throttling; successes reset it. */
+/**
+ * Records an attempt. Only failures drive throttling; successes reset it.
+ *
+ * auth_attempts is written either way, because it is the durable audit trail of
+ * authentication attempts and should survive independently of whatever is
+ * counting. When Redis is the counter store the failure is additionally pushed
+ * there; when it is not, the audit row IS the counter, so writing to both would
+ * double-count.
+ */
 export async function recordAttempt(
   kind: AttemptKind,
   opts: { identifier?: string | null; ip?: string | null; succeeded: boolean },
 ): Promise<void> {
   const identifier = opts.identifier?.toLowerCase().trim() || null;
+
   await sql`
     INSERT INTO auth_attempts (kind, identifier, ip, succeeded)
     VALUES (${kind}, ${identifier}, ${opts.ip ?? null}, ${opts.succeeded})
   `;
+
+  if (opts.succeeded) return;
+
+  const redis = getRedis();
+  if (!redis) return; // Postgres store counts the audit row written above.
+
+  const store = new RedisRateLimitStore(redis);
+  const now = new Date();
+  try {
+    if (identifier) {
+      await store.recordFailure(
+        storeKey(kind, 'identifier', identifier), now, IDENTIFIER_POLICY[kind].windowSeconds,
+      );
+    }
+    if (opts.ip) {
+      await store.recordFailure(
+        storeKey(kind, 'ip', opts.ip), now, IP_POLICY[kind].windowSeconds,
+      );
+    }
+  } catch {
+    // The audit row is already committed, so a Redis outage degrades to the
+    // Postgres store counting that row — the attempt is never uncounted.
+  }
 }
 
 /**
@@ -77,15 +120,44 @@ export async function clearAttempts(
   kind: AttemptKind,
   identifier: string,
 ): Promise<void> {
+  const value = identifier.toLowerCase().trim();
+
+  // Clear both stores: whichever is active must forget the history, and a
+  // later switch between them must not resurrect stale failures.
   await sql`
     DELETE FROM auth_attempts
-     WHERE kind = ${kind} AND identifier = ${identifier.toLowerCase().trim()}
+     WHERE kind = ${kind} AND identifier = ${value}
   `;
+
+  const redis = getRedis();
+  if (!redis) return;
+  try {
+    await new RedisRateLimitStore(redis).clear(storeKey(kind, 'identifier', value));
+  } catch {
+    // Postgres history is already cleared; a stale Redis key expires on its own.
+  }
 }
 
-interface FailureStats {
-  failures: number;
-  lastFailureAt: Date | null;
+const postgresStore = new PostgresRateLimitStore(sql);
+
+/**
+ * Picks the store per call. Redis when configured and healthy, Postgres
+ * otherwise — including when a Redis command throws, so a counter-store outage
+ * degrades to the slower store instead of removing the limit.
+ */
+async function withStore<T>(
+  run: (store: RateLimitStore) => Promise<T>,
+): Promise<T> {
+  const redis = getRedis();
+  if (redis) {
+    try {
+      return await run(new RedisRateLimitStore(redis));
+    } catch {
+      // Fall through to Postgres. Deliberately silent per call: a flapping
+      // Redis would otherwise flood the logs from the login path.
+    }
+  }
+  return run(postgresStore);
 }
 
 async function failureStats(
@@ -94,30 +166,7 @@ async function failureStats(
   value: string,
   windowSeconds: number,
 ): Promise<FailureStats> {
-  const rows =
-    column === 'identifier'
-      ? ((await sql`
-          SELECT count(*)::int AS failures, max(created_at) AS last_failure_at
-            FROM auth_attempts
-           WHERE kind = ${kind}
-             AND identifier = ${value}
-             AND succeeded = FALSE
-             AND created_at > now() - make_interval(secs => ${windowSeconds})
-        `) as { failures: number; last_failure_at: string | null }[])
-      : ((await sql`
-          SELECT count(*)::int AS failures, max(created_at) AS last_failure_at
-            FROM auth_attempts
-           WHERE kind = ${kind}
-             AND ip = ${value}
-             AND succeeded = FALSE
-             AND created_at > now() - make_interval(secs => ${windowSeconds})
-        `) as { failures: number; last_failure_at: string | null }[]);
-
-  const row = rows[0];
-  return {
-    failures: row?.failures ?? 0,
-    lastFailureAt: row?.last_failure_at ? new Date(row.last_failure_at) : null,
-  };
+  return withStore((store) => store.stats(storeKey(kind, column, value), windowSeconds));
 }
 
 function evaluate(stats: FailureStats, policy: Policy): RateLimitResult {

@@ -10,6 +10,7 @@
  * Target a different database by setting DATABASE_URL for the invocation.
  */
 import { sql, query, pool } from '../lib/pool';
+import { describeError, connectionHint } from '../lib/describe-error';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -68,6 +69,11 @@ main()
   .then(() => pool.end())
   .catch(async (err) => {
     await pool.end().catch(() => {});
-    console.error('Migration failed:', err instanceof Error ? err.message : 'unknown error');
+    // describeError unwraps AggregateError (whose own message is empty) and
+    // redacts credentials, so a connection failure is diagnosable from CI logs
+    // without leaking DATABASE_URL.
+    console.error('Migration failed:', describeError(err));
+    const hint = connectionHint(err);
+    if (hint) console.error(hint);
     process.exit(1);
   });

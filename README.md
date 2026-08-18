@@ -49,6 +49,7 @@ Copy `.env.example` to `.env` and fill in as needed. Only `VITE_`-prefixed varia
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
+| `REDIS_URL` | No | Redis endpoint for auth rate-limit counters (any standard Redis: self-hosted, Upstash, Vercel KV). Unset, counters fall back to Postgres — correct, but heavier on the primary. If set but unreachable, the limiter degrades rather than failing open. |
 | `VITE_SITE_URL` | No | Public base URL of the deployed site, no trailing slash (e.g. `https://agriconnect.co.zw`). Makes the `og:image` / `twitter:image` tags absolute, which social crawlers prefer. Unset, they fall back to root-relative paths — fine locally, less reliable across crawlers. **Set this at deploy time to make link previews work properly.** |
 
 ---

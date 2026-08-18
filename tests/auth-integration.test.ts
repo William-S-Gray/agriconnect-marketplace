@@ -104,10 +104,27 @@ describe('seeded demo accounts', () => {
     expect(await verifyPassword(admin!.password_hash, 'Demo@1234')).toBe(false);
   });
 
-  it('there is exactly one admin, and no look-alike email holds the role', async () => {
-    const admins = await sql<{ email: string }>`SELECT email FROM users WHERE role = 'admin'`;
+  it('only the canonical address holds the admin role', async () => {
+    // Scoped to non-test accounts on purpose: sibling test files create their
+    // own admin users in this same database, so asserting a global count of 1
+    // couples this test to whatever else happens to be running.
+    const admins = await sql<{ email: string }>`
+      SELECT email FROM users
+       WHERE role = 'admin' AND email NOT LIKE '%@example.test'
+    `;
     expect(admins).toHaveLength(1);
     expect(admins[0]!.email).toBe('admin@agriconnect.co.zw');
+  });
+
+  it('no look-alike address has been granted the admin role', async () => {
+    // Guards the original bug: admin was granted to any email *containing*
+    // "admin", so these must never appear with the role.
+    const lookalikes = await sql<{ email: string }>`
+      SELECT email FROM users
+       WHERE role = 'admin' AND email <> 'admin@agriconnect.co.zw'
+         AND email NOT LIKE '%@example.test'
+    `;
+    expect(lookalikes).toEqual([]);
   });
 });
 

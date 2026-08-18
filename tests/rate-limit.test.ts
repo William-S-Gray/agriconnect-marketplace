@@ -1,3 +1,8 @@
+// Pin the store: other test files set REDIS_URL, and vitest can reuse a worker
+// process between files, so an inherited value would silently switch this file
+// to the Redis path and make its assertions about Postgres meaningless.
+process.env.REDIS_URL = '';
+
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { sql, pool } from '@/lib/pool';

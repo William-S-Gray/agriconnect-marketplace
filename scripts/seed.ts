@@ -15,7 +15,7 @@
 import { hash } from '@node-rs/argon2';
 import { sql, pool } from '../lib/pool';
 import { describeError, connectionHint } from '../lib/describe-error';
-import { randomUUID } from 'node:crypto';
+import { fixtureId } from '../lib/fixture-id';
 import {
   SEED_FARMERS,
   SEED_BUYERS,
@@ -84,7 +84,7 @@ async function main() {
   // ─── Farmers ────────────────────────────────────────────────────────────────
   for (const f of SEED_FARMERS) {
     const userId = await upsertUser(f.email, 'farmer', passwordHash);
-    const id = farmerIds.get(f.id) ?? randomUUID();
+    const id = fixtureId('farmer', f.id);
     farmerIds.set(f.id, id);
 
     await sql`
@@ -114,7 +114,7 @@ async function main() {
   // ─── Buyers ─────────────────────────────────────────────────────────────────
   for (const b of SEED_BUYERS) {
     const userId = await upsertUser(b.email, 'buyer', passwordHash);
-    const id = randomUUID();
+    const id = fixtureId('buyer', b.id);
 
     await sql`
       INSERT INTO buyers (id, user_id, name, phone, buyer_type, city, address, ecocash_number)
@@ -137,7 +137,7 @@ async function main() {
       console.warn(`  skipping listing ${l.id}: unknown farmer ${l.farmer_id}`);
       continue;
     }
-    const id = randomUUID();
+    const id = fixtureId('listing', l.id);
     const rows = (await sql`
       INSERT INTO listings
         (id, farmer_id, title, description, category, produce_type, quantity_kg,
@@ -152,6 +152,10 @@ async function main() {
          ${l.photos as unknown as string[]}, ${l.is_organic}, ${l.is_available},
          ${l.province}, ${l.district}, ${l.delivery_options as unknown as string[]},
          ${l.views_count}, ${l.status}::listing_status, ${l.created_at})
+      ON CONFLICT (id) DO UPDATE
+        SET title = EXCLUDED.title, price_per_unit = EXCLUDED.price_per_unit,
+            quantity_kg = EXCLUDED.quantity_kg, status = EXCLUDED.status,
+            is_available = EXCLUDED.is_available, updated_at = now()
       RETURNING id
     `) as { id: string }[];
     listingIds.set(l.id, rows[0]!.id);
@@ -167,7 +171,7 @@ async function main() {
       console.warn(`  skipping order ${o.id}: unresolved reference`);
       continue;
     }
-    const id = randomUUID();
+    const id = fixtureId('order', o.id);
     const rows = (await sql`
       INSERT INTO orders
         (id, reference, buyer_id, farmer_id, listing_id, quantity, unit_price,
@@ -181,7 +185,9 @@ async function main() {
          ${o.delivery_address ?? null}, ${o.delivery_date ?? null},
          ${o.status}::order_status, ${o.payment_status}::payment_status,
          ${o.buyer_confirmed}, ${o.notes ?? null}, ${o.created_at})
-      ON CONFLICT (reference) DO NOTHING
+      ON CONFLICT (reference) DO UPDATE
+        SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status,
+            updated_at = now()
       RETURNING id
     `) as { id: string }[];
     if (rows[0]) orderIds.set(o.id, rows[0].id);
@@ -194,9 +200,11 @@ async function main() {
     const orderId = orderIds.get(d.order_id);
     if (!orderId) continue;
     await sql`
-      INSERT INTO disputes (order_id, raised_by, reason, description, status, resolution, created_at)
-      VALUES (${orderId}, ${d.raised_by}::dispute_party, ${d.reason}, ${d.description},
-              ${d.status}::dispute_status, ${d.resolution ?? null}, ${d.created_at})
+      INSERT INTO disputes (id, order_id, raised_by, reason, description, status, resolution, created_at)
+      VALUES (${fixtureId('dispute', d.id)}, ${orderId}, ${d.raised_by}::dispute_party, ${d.reason},
+              ${d.description}, ${d.status}::dispute_status, ${d.resolution ?? null}, ${d.created_at})
+      ON CONFLICT (id) DO UPDATE
+        SET status = EXCLUDED.status, resolution = EXCLUDED.resolution, updated_at = now()
     `;
     disputeCount++;
   }

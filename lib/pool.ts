@@ -1,0 +1,101 @@
+/**
+ * Postgres pool and query helpers.
+ *
+ * Deliberately free of `server-only` so that migration/seed scripts (run under
+ * tsx) and tests (run under vitest) can import it. Application code should
+ * import from lib/db.ts instead, which re-exports this behind a `server-only`
+ * guard so a client component importing it fails at build time.
+ */
+import { Pool } from 'pg';
+
+export type Role = 'farmer' | 'buyer' | 'admin';
+
+export interface UserRow {
+  id: string;
+  email: string;
+  password_hash: string;
+  role: Role;
+  status: 'ACTIVE' | 'SUSPENDED';
+  mfa_enabled: boolean;
+  mfa_secret: string | null;
+  session_epoch: number;
+}
+
+function connectionString(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('Missing required environment variable DATABASE_URL.');
+  return url;
+}
+
+function createPool(): Pool {
+  const base = {
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 15_000,
+  };
+
+  /**
+   * Escape hatch for restricted networks. Neon publishes several A records per
+   * endpoint; some sandboxes can only reach a subset, and Node's resolver does
+   * not fall back between them the way curl's Happy Eyeballs does. Setting
+   * DB_PINNED_HOST_IP dials that address directly while still presenting the
+   * real hostname for SNI and certificate validation, so TLS is not weakened.
+   *
+   * Leave unset in production: Neon's addresses rotate and normal hosts resolve
+   * the endpoint without help.
+   */
+  const pinnedIp = process.env.DB_PINNED_HOST_IP?.trim();
+  if (pinnedIp) {
+    const url = new URL(connectionString());
+    return new Pool({
+      ...base,
+      host: pinnedIp,
+      port: Number(url.port || 5432),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: url.pathname.slice(1),
+      ssl: { rejectUnauthorized: true, servername: url.hostname },
+    });
+  }
+
+  return new Pool({
+    ...base,
+    connectionString: connectionString(),
+    // Neon requires TLS; certificates are validated against the system store.
+    ssl: { rejectUnauthorized: true },
+  });
+}
+
+// One pool per process. Next.js hot-reloads modules in development, so the pool
+// is cached on globalThis to avoid leaking a new pool on every reload.
+const globalForDb = globalThis as unknown as { __agriPool?: Pool };
+export const pool: Pool = globalForDb.__agriPool ?? createPool();
+if (process.env.NODE_ENV !== 'production') globalForDb.__agriPool = pool;
+
+/**
+ * Tagged-template query helper. Values become bound parameters, which is the
+ * injection boundary — never interpolate into the template string itself.
+ *
+ *     await sql`SELECT * FROM users WHERE email = ${email}`
+ */
+export async function sql<T = Record<string, unknown>>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+): Promise<T[]> {
+  let text = '';
+  strings.forEach((chunk, i) => {
+    text += chunk;
+    if (i < values.length) text += `$${i + 1}`;
+  });
+  const result = await pool.query(text, values);
+  return result.rows as T[];
+}
+
+/** Escape hatch for dynamic statements (migrations). Never pass user input. */
+export async function query<T = Record<string, unknown>>(
+  text: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const result = await pool.query(text, params);
+  return result.rows as T[];
+}

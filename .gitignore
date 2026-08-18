@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.next
+next-env.d.ts
+*.tsbuildinfo
 *.local
 
 # Local env files — keep secrets (payment keys, API tokens) out of the repo.

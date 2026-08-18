@@ -68,9 +68,14 @@ function createPool(): Pool {
 
 // One pool per process. Next.js hot-reloads modules in development, so the pool
 // is cached on globalThis to avoid leaking a new pool on every reload.
+//
+// Development ONLY, deliberately. Caching under NODE_ENV=test made test files
+// share one pool across a reused vitest worker: the first file's pool.end()
+// left every later file querying a closed pool, which showed up as whole test
+// files failing at random.
 const globalForDb = globalThis as unknown as { __agriPool?: Pool };
 export const pool: Pool = globalForDb.__agriPool ?? createPool();
-if (process.env.NODE_ENV !== 'production') globalForDb.__agriPool = pool;
+if (process.env.NODE_ENV === 'development') globalForDb.__agriPool = pool;
 
 /**
  * Tagged-template query helper. Values become bound parameters, which is the

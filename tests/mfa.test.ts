@@ -1,0 +1,210 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { generateSecret, generateSync } from 'otplib';
+import { sql, pool } from '@/lib/pool';
+import { hashPassword } from '@/lib/password';
+import {
+  encryptSecret,
+  decryptSecret,
+  verifyTotp,
+  beginEnrolment,
+  confirmEnrolment,
+  verifyUserTotp,
+  regenerateRecoveryCodes,
+  consumeRecoveryCode,
+  disableMfa,
+} from '@/lib/mfa';
+
+const suffix = randomUUID().slice(0, 8);
+const email = `mfa-${suffix}@example.test`;
+let userId: string;
+
+beforeAll(async () => {
+  const hash = await hashPassword('mfa test passphrase here');
+  const [row] = await sql<{ id: string }>`
+    INSERT INTO users (email, password_hash, role)
+    VALUES (${email}, ${hash}, 'buyer') RETURNING id
+  `;
+  userId = row!.id;
+});
+
+afterAll(async () => {
+  await sql`DELETE FROM users WHERE email = ${email}`;
+  await pool.end();
+});
+
+describe('secret encryption at rest', () => {
+  it('round-trips a secret', () => {
+    const secret = generateSecret({ length: 20 });
+    expect(decryptSecret(encryptSecret(secret))).toBe(secret);
+  });
+
+  it('ciphertext does not contain the plaintext', () => {
+    const secret = generateSecret({ length: 20 });
+    expect(encryptSecret(secret)).not.toContain(secret);
+  });
+
+  it('produces different ciphertext each time (random IV)', () => {
+    const secret = generateSecret({ length: 20 });
+    expect(encryptSecret(secret)).not.toBe(encryptSecret(secret));
+  });
+
+  it('returns null on tampered ciphertext rather than leaking a partial secret', () => {
+    const encrypted = encryptSecret(generateSecret({ length: 20 }));
+    const tampered = `${encrypted.slice(0, -4)}AAAA`;
+    expect(decryptSecret(tampered)).toBeNull();
+    expect(decryptSecret('garbage')).toBeNull();
+  });
+});
+
+describe('TOTP verification', () => {
+  it('accepts a valid current code', () => {
+    const secret = generateSecret({ length: 20 });
+    expect(verifyTotp(secret, generateSync({ secret, digits: 6, period: 30 }))).toBe(true);
+  });
+
+  it('rejects an incorrect code', () => {
+    const secret = generateSecret({ length: 20 });
+    const otherSecret = generateSecret({ length: 20 });
+    const wrong = generateSync({ secret: otherSecret, digits: 6, period: 30 });
+    expect(verifyTotp(secret, wrong)).toBe(false);
+  });
+
+  it('rejects malformed input', () => {
+    const secret = generateSecret({ length: 20 });
+    expect(verifyTotp(secret, '')).toBe(false);
+    expect(verifyTotp(secret, '12345')).toBe(false);
+    expect(verifyTotp(secret, 'abcdef')).toBe(false);
+  });
+
+  it('rejects a code from a distant time step (expired)', () => {
+    const secret = generateSecret({ length: 20 });
+    // A code generated ~5 minutes ago is far outside the ±1 step window.
+    const past = generateSync({ secret, digits: 6, period: 30 });
+    const realNow = Date.now;
+    try {
+      Date.now = () => realNow() + 5 * 60 * 1000;
+      expect(verifyTotp(secret, past)).toBe(false);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+});
+
+describe('enrolment', () => {
+  it('does not enable MFA until a code is confirmed', async () => {
+    await beginEnrolment(userId, email);
+    const [before] = await sql<{ mfa_enabled: boolean; mfa_secret: string | null }>`
+      SELECT mfa_enabled, mfa_secret FROM users WHERE id = ${userId}
+    `;
+    expect(before!.mfa_enabled).toBe(false);
+    expect(before!.mfa_secret).not.toBeNull();
+  });
+
+  it('stores the secret encrypted, not in plaintext', async () => {
+    const challenge = await beginEnrolment(userId, email);
+    const [row] = await sql<{ mfa_secret: string }>`
+      SELECT mfa_secret FROM users WHERE id = ${userId}
+    `;
+    expect(row!.mfa_secret).not.toBe(challenge.secret);
+    expect(row!.mfa_secret).not.toContain(challenge.secret);
+    expect(row!.mfa_secret.startsWith('v1.')).toBe(true);
+  });
+
+  it('rejects confirmation with a wrong code', async () => {
+    await beginEnrolment(userId, email);
+    expect((await confirmEnrolment(userId, '000000')).ok).toBe(false);
+    const [row] = await sql<{ mfa_enabled: boolean }>`
+      SELECT mfa_enabled FROM users WHERE id = ${userId}
+    `;
+    expect(row!.mfa_enabled).toBe(false);
+  });
+
+  it('enables MFA and issues recovery codes on a valid code', async () => {
+    const challenge = await beginEnrolment(userId, email);
+    const result = await confirmEnrolment(
+      userId,
+      generateSync({ secret: challenge.secret, digits: 6, period: 30 }),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.recoveryCodes).toHaveLength(10);
+
+    const [row] = await sql<{ mfa_enabled: boolean }>`
+      SELECT mfa_enabled FROM users WHERE id = ${userId}
+    `;
+    expect(row!.mfa_enabled).toBe(true);
+  });
+
+  it('provides a scannable otpauth URI and QR image', async () => {
+    const challenge = await beginEnrolment(userId, email);
+    expect(challenge.otpauthUrl).toContain('otpauth://totp/');
+    expect(challenge.otpauthUrl).toContain('AgriConnect');
+    expect(challenge.qrDataUrl.startsWith('data:image/png;base64,')).toBe(true);
+  });
+});
+
+describe('code reuse', () => {
+  it('accepts a code once and refuses the same code again', async () => {
+    const challenge = await beginEnrolment(userId, email);
+    await confirmEnrolment(userId, generateSync({ secret: challenge.secret, digits: 6, period: 30 }));
+
+    const code = generateSync({ secret: challenge.secret, digits: 6, period: 30 });
+    expect(await verifyUserTotp(userId, code)).toBe(true);
+    // Replay inside the same time step must fail.
+    expect(await verifyUserTotp(userId, code)).toBe(false);
+  });
+
+  it('refuses any code when MFA is not enabled', async () => {
+    const challenge = await beginEnrolment(userId, email); // leaves mfa_enabled false
+    expect(await verifyUserTotp(userId, generateSync({ secret: challenge.secret, digits: 6, period: 30 }))).toBe(false);
+  });
+});
+
+describe('recovery codes', () => {
+  it('each code works exactly once', async () => {
+    const codes = await regenerateRecoveryCodes(userId);
+    const code = codes[0]!;
+    expect(await consumeRecoveryCode(userId, code)).toBe(true);
+    expect(await consumeRecoveryCode(userId, code)).toBe(false);
+  });
+
+  it('rejects an unknown code', async () => {
+    await regenerateRecoveryCodes(userId);
+    expect(await consumeRecoveryCode(userId, 'AAAAA-BBBBB')).toBe(false);
+  });
+
+  it('stores only hashes, never the plaintext codes', async () => {
+    const codes = await regenerateRecoveryCodes(userId);
+    const stored = await sql<{ code_hash: string }>`
+      SELECT code_hash FROM mfa_recovery_codes WHERE user_id = ${userId}
+    `;
+    const hashes = stored.map((r) => r.code_hash);
+    for (const code of codes) {
+      expect(hashes).not.toContain(code);
+    }
+  });
+
+  it('regenerating invalidates the previous unused codes', async () => {
+    const first = await regenerateRecoveryCodes(userId);
+    await regenerateRecoveryCodes(userId);
+    expect(await consumeRecoveryCode(userId, first[0]!)).toBe(false);
+  });
+});
+
+describe('disabling MFA', () => {
+  it('clears the secret and all recovery codes', async () => {
+    const challenge = await beginEnrolment(userId, email);
+    await confirmEnrolment(userId, generateSync({ secret: challenge.secret, digits: 6, period: 30 }));
+
+    await disableMfa(userId);
+
+    const [row] = await sql<{ mfa_enabled: boolean; mfa_secret: string | null }>`
+      SELECT mfa_enabled, mfa_secret FROM users WHERE id = ${userId}
+    `;
+    expect(row!.mfa_enabled).toBe(false);
+    expect(row!.mfa_secret).toBeNull();
+
+    const codes = await sql`SELECT id FROM mfa_recovery_codes WHERE user_id = ${userId}`;
+    expect(codes).toHaveLength(0);
+  });
+});

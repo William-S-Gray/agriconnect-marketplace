@@ -70,6 +70,12 @@ export function SiteNav({ cartCount = 0 }: { cartCount?: number }) {
                   {displayName.split(' ')[0] || 'Dashboard'}
                 </Button>
               </Link>
+              <Link
+                href="/settings/security"
+                className="text-sm text-muted-foreground hover:text-foreground hidden sm:block"
+              >
+                Security
+              </Link>
               <button
                 onClick={onLogout}
                 aria-label="Sign out"

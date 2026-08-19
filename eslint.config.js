@@ -5,9 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  // legacy/ holds the un-ported React Router pages; they are excluded from the
-// build and typecheck, so linting them would only produce noise.
-  { ignores: ["dist", ".next", "legacy", "next-env.d.ts"] },
+  { ignores: ["dist", ".next", "next-env.d.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -25,5 +23,14 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  {
+    // Must come after the block above: in flat config the last matching entry
+    // wins. Next.js route files are required to export metadata / dynamic /
+    // runtime alongside the component, which react-refresh's single-export
+    // rule flags by design. That rule targets Vite's Fast Refresh and does not
+    // apply here, so without this it warns on every page ever added.
+    files: ["app/**/*.{ts,tsx}", "middleware.ts"],
+    rules: { "react-refresh/only-export-components": "off" },
   },
 );

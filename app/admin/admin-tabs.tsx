@@ -121,6 +121,9 @@ export function AdminTabs({
         </nav>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground px-3 truncate">{email}</p>
+          <Link href="/settings/security" className="text-sm text-muted-foreground hover:text-foreground px-3 py-2 block">
+            Security
+          </Link>
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground px-3 py-2 block">
             ← Back to site
           </Link>

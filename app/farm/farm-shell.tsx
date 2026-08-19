@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Package, ShoppingBag, DollarSign, User } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, DollarSign, User, ShieldCheck } from 'lucide-react';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { useLogout } from '@/hooks/use-session';
 
@@ -10,6 +10,7 @@ const NAV = [
   { icon: ShoppingBag, label: 'Orders', href: '/farm/orders' },
   { icon: DollarSign, label: 'Earnings', href: '/farm/earnings' },
   { icon: User, label: 'Profile', href: '/farm/profile' },
+  { icon: ShieldCheck, label: 'Security', href: '/settings/security' },
 ];
 
 export function FarmShell({

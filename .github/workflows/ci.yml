@@ -69,6 +69,13 @@ jobs:
           node-version: 22
           cache: npm
 
+      # CI must use the same npm that generated package-lock.json. The runner's
+      # Node image bundles a much newer npm, which computes a different ideal
+      # dependency tree and rejects a lock file that installs cleanly locally.
+      # Bump this together with a regenerated lock file, never on its own.
+      - name: Pin npm to the lock file's version
+        run: npm install -g npm@10.9.8
+
       - name: Compose DATABASE_URL
         run: |
           echo "DATABASE_URL=postgres://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}" >> "$GITHUB_ENV"

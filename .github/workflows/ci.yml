@@ -76,6 +76,14 @@ jobs:
       - name: Pin npm to the lock file's version
         run: npm install -g npm@10.9.8
 
+      # Diagnostic: the lock file installs cleanly locally but npm ci rejected
+      # it here, so record exactly what CI is running.
+      - name: Show toolchain versions
+        run: |
+          echo "node: $(node --version)"
+          echo "npm:  $(npm --version)"
+          echo "npm path: $(which npm)"
+
       - name: Compose DATABASE_URL
         run: |
           echo "DATABASE_URL=postgres://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}" >> "$GITHUB_ENV"

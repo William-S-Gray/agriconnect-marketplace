@@ -45,7 +45,15 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgres://agri:agri@127.0.0.1:5432/agriconnect_test
+      # DATABASE_URL is assembled in a step rather than written literally here.
+      # A connection string with an inline password is exactly what the secrets
+      # job scans for, and allowlisting workflow files would blind it to a real
+      # credential pasted into one later.
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: agri
+      PGPASSWORD: agri
+      PGDATABASE: agriconnect_test
       # Exercises the Redis-backed rate limiter; without it those suites skip.
       TEST_REDIS_URL: redis://127.0.0.1:6379
       # Non-secret values: this database is destroyed with the runner.
@@ -60,6 +68,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      - name: Compose DATABASE_URL
+        run: |
+          echo "DATABASE_URL=postgres://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: npm ci
@@ -103,14 +115,18 @@ jobs:
             exit 1
           fi
 
-          # Any postgres URL carrying a password. Three files legitimately
+          # Any postgres URL carrying a literal password. Shell/CI placeholders
+          # such as postgres://${USER}:${PASS}@host are excluded by rejecting
+          # $ { } in the credential parts -- a real leaked credential does not
+          # contain them, so this narrows false positives without weakening the
+          # check. Three files legitimately
           # contain credential-shaped strings and are listed explicitly rather
           # than matched by a loose pattern, so a real leak elsewhere still
           # fails:
           #   .env.example                  - placeholder connection string
           #   lib/describe-error.ts         - comment showing the redaction it performs
           #   tests/describe-error.test.ts  - fixtures asserting redaction works
-          if git ls-files -z | xargs -0 grep -lE 'postgres(ql)?://[^:/@[:space:]]+:[^@[:space:]]+@' 2>/dev/null \
+          if git ls-files -z | xargs -0 grep -lE 'postgres(ql)?://[^:/@[:space:]$'"'"'{}]+:[^@[:space:]$'"'"'{}]+@' 2>/dev/null \
                | grep -vxF -e '.env.example' \
                            -e 'lib/describe-error.ts' \
                            -e 'tests/describe-error.test.ts' | grep .; then

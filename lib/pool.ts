@@ -27,6 +27,25 @@ function connectionString(): string {
   return url;
 }
 
+/**
+ * Decides TLS for a connection target.
+ *
+ * Neon requires TLS, so remote hosts always get it with certificate validation.
+ * TLS is only skipped for loopback or an explicit sslmode=disable, which covers
+ * a local Postgres container and CI service containers — neither of which
+ * terminates TLS. A remote host can never end up unencrypted by omission.
+ */
+function sslFor(url: URL): { rejectUnauthorized: true; servername?: string } | false {
+  if (url.searchParams.get('sslmode') === 'disable') return false;
+
+  const host = url.hostname;
+  const isLoopback =
+    host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+  if (isLoopback) return false;
+
+  return { rejectUnauthorized: true };
+}
+
 function createPool(): Pool {
   const base = {
     max: 10,
@@ -54,15 +73,18 @@ function createPool(): Pool {
       user: decodeURIComponent(url.username),
       password: decodeURIComponent(url.password),
       database: url.pathname.slice(1),
-      ssl: { rejectUnauthorized: true, servername: url.hostname },
+      ssl: (() => {
+        const ssl = sslFor(url);
+        // Pinning dials an IP, so SNI must still present the real hostname.
+        return ssl ? { ...ssl, servername: url.hostname } : false;
+      })(),
     });
   }
 
   return new Pool({
     ...base,
     connectionString: connectionString(),
-    // Neon requires TLS; certificates are validated against the system store.
-    ssl: { rejectUnauthorized: true },
+    ssl: sslFor(new URL(connectionString())),
   });
 }
 

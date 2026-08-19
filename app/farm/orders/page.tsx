@@ -3,6 +3,8 @@ import { sql } from '@/lib/db';
 import { num, iso } from '@/lib/serialize';
 import { FarmShell } from '../farm-shell';
 import { OrderTimeline } from '@/components/OrderTimeline';
+import { OrderActions } from '@/components/OrderActions';
+import { availableActions, type OrderStatus } from '@/lib/order-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +65,12 @@ export default async function FarmerOrdersPage() {
               <div className="mt-4">
                 <OrderTimeline status={o.status} />
               </div>
+              {/* Computed server-side from the order's state and this farmer's
+                  relationship to it; the API re-checks on every request. */}
+              <OrderActions
+                orderId={o.id}
+                actions={availableActions(o.status as OrderStatus, 'farmer')}
+              />
             </li>
           ))}
         </ul>

@@ -5,6 +5,8 @@ import { num, iso } from '@/lib/serialize';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { OrderTimeline } from '@/components/OrderTimeline';
+import { OrderActions } from '@/components/OrderActions';
+import { availableActions, type OrderStatus } from '@/lib/order-lifecycle';
 import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +73,10 @@ export default async function BuyerOrdersPage() {
                 <div className="mt-4">
                   <OrderTimeline status={o.status} />
                 </div>
+                <OrderActions
+                  orderId={o.id}
+                  actions={availableActions(o.status as OrderStatus, 'buyer')}
+                />
               </li>
             ))}
           </ul>

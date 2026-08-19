@@ -10,6 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LazyBarChart } from '@/components/charts/LazyBarChart';
+import { OrderActions } from '@/components/OrderActions';
+import { availableActions, type OrderStatus } from '@/lib/order-lifecycle';
 import { useLogout } from '@/hooks/use-session';
 import { toast } from 'sonner';
 
@@ -28,6 +30,7 @@ interface OrderRow {
 interface DisputeRow {
   id: string; reason: string; description: string; status: string;
   createdAt: string; reference: string; amount: number;
+  orderId: string; orderStatus: string;
 }
 interface PriceRow {
   id: string; produceType: string; province: string; avgPrice: number; listingsCount: number;
@@ -257,6 +260,12 @@ export function AdminTabs({
                       <span className="text-xs text-accent">{d.status}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">{d.description}</p>
+                    {/* Resolution is an order transition, so it goes through the
+                        same state machine and authorization as every other move. */}
+                    <OrderActions
+                      orderId={d.orderId}
+                      actions={availableActions(d.orderStatus as OrderStatus, 'admin')}
+                    />
                   </li>
                 ))}
               </ul>

@@ -58,8 +58,10 @@ export default async function AdminPage() {
   const disputes = await sql<{
     id: string; reason: string; description: string; status: string;
     created_at: Date; reference: string; amount: string;
+    order_id: string; order_status: string;
   }>`
     SELECT d.id, d.reason, d.description, d.status, d.created_at,
+           o.id AS order_id, o.status AS order_status,
            o.reference, o.total_amount AS amount
       FROM disputes d JOIN orders o ON o.id = d.order_id
      ORDER BY d.created_at DESC
@@ -103,6 +105,7 @@ export default async function AdminPage() {
       disputes={disputes.map((d) => ({
         id: d.id, reason: d.reason, description: d.description, status: d.status,
         createdAt: iso(d.created_at).slice(0, 10), reference: d.reference, amount: num(d.amount),
+        orderId: d.order_id, orderStatus: d.order_status,
       }))}
       prices={prices.map((p) => ({
         id: p.id, produceType: p.produce_type, province: p.province,

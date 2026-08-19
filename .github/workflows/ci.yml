@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Ephemeral services rather than the shared Neon dev database: CI must not
+    # mutate an environment a person might be using, and two concurrent runs
+    # against one database would corrupt each other's fixtures. This also
+    # exercises the migration path from an empty schema on every run.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agri
+          POSTGRES_PASSWORD: agri
+          POSTGRES_DB: agriconnect_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U agri"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # DATABASE_URL is assembled in a step rather than written literally here.
+      # A connection string with an inline password is exactly what the secrets
+      # job scans for, and allowlisting workflow files would blind it to a real
+      # credential pasted into one later.
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: agri
+      PGPASSWORD: agri
+      PGDATABASE: agriconnect_test
+      # Exercises the Redis-backed rate limiter; without it those suites skip.
+      TEST_REDIS_URL: redis://127.0.0.1:6379
+      # Non-secret values: this database is destroyed with the runner.
+      SESSION_SECRET: ci-session-secret-not-used-outside-ci
+      MFA_ENCRYPTION_KEY: ci-mfa-encryption-key-not-used-outside-ci
+      APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Compose DATABASE_URL
+        run: |
+          echo "DATABASE_URL=postgres://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Runs before typecheck so a schema mistake fails with a clear message
+      # rather than as a confusing type error against a missing table.
+      - name: Apply migrations
+        run: npm run db:migrate
+
+      - name: Seed fixtures
+        run: npm run db:seed
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  # Fails the build if a real secret is ever committed. Cheap, and the one
+  # mistake in this repo that would be expensive to undo.
+  secrets:
+    name: no committed secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan tracked files for credentials
+        run: |
+          set -euo pipefail
+
+          # Neon connection tokens.
+          if git ls-files -z | xargs -0 grep -lE 'npg_[A-Za-z0-9]{16,}' 2>/dev/null | grep .; then
+            echo "::error::A Neon credential appears in a tracked file."
+            exit 1
+          fi
+
+          # Any postgres URL carrying a literal password. Shell/CI placeholders
+          # such as postgres://${USER}:${PASS}@host are excluded by rejecting
+          # $ { } in the credential parts -- a real leaked credential does not
+          # contain them, so this narrows false positives without weakening the
+          # check. Three files legitimately
+          # contain credential-shaped strings and are listed explicitly rather
+          # than matched by a loose pattern, so a real leak elsewhere still
+          # fails:
+          #   .env.example                  - placeholder connection string
+          #   lib/describe-error.ts         - comment showing the redaction it performs
+          #   tests/describe-error.test.ts  - fixtures asserting redaction works
+          if git ls-files -z | xargs -0 grep -lE 'postgres(ql)?://[^:/@[:space:]$'"'"'{}]+:[^@[:space:]$'"'"'{}]+@' 2>/dev/null \
+               | grep -vxF -e '.env.example' \
+                           -e 'lib/describe-error.ts' \
+                           -e 'tests/describe-error.test.ts' | grep .; then
+            echo "::error::A postgres URL with embedded credentials appears in a tracked file."
+            exit 1
+          fi
+
+          # A real .env should never be tracked; .env.example is expected.
+          if git ls-files | grep -E '^\.env' | grep -v '^\.env\.example$' | grep .; then
+            echo "::error::An environment file other than .env.example is tracked."
+            exit 1
+          fi
+
+          echo "No committed secrets found."

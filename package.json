@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ci": "./scripts/ci-local.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

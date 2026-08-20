@@ -6,6 +6,7 @@ import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { OrderActions } from '@/components/OrderActions';
+import { ReviewForm } from '@/components/ReviewForm';
 import { availableActions, type OrderStatus } from '@/lib/order-lifecycle';
 import { Button } from '@/components/ui/button';
 
@@ -20,14 +21,17 @@ export default async function BuyerOrdersPage() {
     id: string; reference: string; status: string; payment_status: string;
     quantity: string; unit_price: string; total_amount: string; created_at: Date;
     listing_title: string; farm_name: string; farmer_id: string;
+    review_rating: number | null; review_comment: string | null;
   }>`
     SELECT o.id, o.reference, o.status, o.payment_status, o.quantity, o.unit_price,
            o.total_amount, o.created_at, l.title AS listing_title,
-           f.farm_name, f.id AS farmer_id
+           f.farm_name, f.id AS farmer_id,
+           r.rating AS review_rating, r.comment AS review_comment
       FROM orders o
       JOIN buyers   b ON b.id = o.buyer_id
       JOIN listings l ON l.id = o.listing_id
       JOIN farmers  f ON f.id = o.farmer_id
+      LEFT JOIN reviews r ON r.order_id = o.id
      WHERE b.user_id = ${session.id}
      ORDER BY o.created_at DESC
   `;
@@ -77,6 +81,19 @@ export default async function BuyerOrdersPage() {
                   orderId={o.id}
                   actions={availableActions(o.status as OrderStatus, 'buyer')}
                 />
+                {/* Only a completed order is reviewable; the endpoint enforces
+                    the same rule, so this only decides what to render. */}
+                {o.status === 'COMPLETED' && (
+                  <ReviewForm
+                    orderId={o.id}
+                    farmName={o.farm_name}
+                    existing={
+                      o.review_rating !== null
+                        ? { rating: o.review_rating, comment: o.review_comment ?? '' }
+                        : null
+                    }
+                  />
+                )}
               </li>
             ))}
           </ul>

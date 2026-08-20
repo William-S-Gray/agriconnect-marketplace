@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Shield, Users, Package, AlertTriangle, BarChart3, DollarSign,
   Sprout, TrendingUp, CheckCircle2, XCircle, LogOut, Loader2,
+  ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -43,7 +44,9 @@ interface PriceRow {
  */
 export function AdminTabs({
   email, stats, farmers, orders, disputes, prices, weekly,
+  securityAlerts,
 }: {
+  securityAlerts: number;
   email: string;
   stats: Stats;
   farmers: FarmerRow[];
@@ -156,7 +159,20 @@ export function AdminTabs({
 
         {tab === 'overview' && (
           <>
-            <h1 className="font-heading text-2xl font-bold text-foreground mb-6">Admin Dashboard</h1>
+            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+              <h1 className="font-heading text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <Link
+                href="/admin/security"
+                className={`text-sm inline-flex items-center gap-2 px-3 py-2 rounded-xl neo-flat ${
+                  securityAlerts > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'
+                }`}
+              >
+                <ShieldAlert className="h-4 w-4" />
+                {securityAlerts > 0
+                  ? `${securityAlerts} security ${securityAlerts === 1 ? 'anomaly' : 'anomalies'} to review`
+                  : 'Session anomalies'}
+              </Link>
+            </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <Stat icon={DollarSign} label="Total GMV" value={`$${stats.gmv.toFixed(2)}`} />
               <Stat icon={TrendingUp} label="Platform revenue" value={`$${stats.revenue.toFixed(2)}`} />

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { requireUser, stripPrivilegedFields } from '@/lib/rbac';
+import { observePrivilegedFields } from '@/lib/anomaly-monitor';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 
 export const runtime = 'nodejs';
@@ -59,6 +60,13 @@ export async function PATCH(request: Request) {
   // Defence in depth: remove privileged keys before validation and surface the
   // fact that they were present.
   const { clean, stripped } = stripPrivilegedFields(body as Record<string, unknown>);
+
+  // No part of this application's UI ever sends one of these, so an attempt to
+  // set one is reported as a privilege escalation attempt rather than silently
+  // dropped. Field names only — never the values.
+  if (stripped.length > 0) {
+    await observePrivilegedFields(auth.user.id, auth.user.sessionId, stripped);
+  }
 
   if (auth.user.role === 'farmer') {
     const parsed = farmerPatch.safeParse(clean);

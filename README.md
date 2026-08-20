@@ -179,19 +179,35 @@ Authentication is simulated client-side for demo purposes. In production:
 - Move account lockout logic to server-side (Redis-backed rate limiting)
 - Use bcrypt for password hashing
 
-### Session Anomaly Detection (Demo Mode)
-`src/lib/session-anomaly.ts` watches an authenticated session for three signals, surfaced immediately by `SessionAnomalyAlert` at the app root:
+### Session Anomaly Detection
 
-| Signal | Trigger |
-|--------|---------|
-| **Privilege escalation** | The persisted session no longer matches the fingerprint issued at login — e.g. `role` edited to `admin` in devtools. The session is ended and cleared before any protected route renders. |
-| **Impossible travel** | The session's location signal changes within 90 minutes (critical), or later (warning). |
-| **Data access volume** | More than 150 sensitive records read inside a 60s window. |
+Runs server-side, inline on the request being judged. `lib/anomaly.ts` holds the
+decision logic as pure functions; `lib/anomaly-monitor.ts` supplies the
+observations and applies the outcome. Detections land in the `security_events`
+table and are reviewed at `/admin/security`.
 
-**This is detection, not enforcement.** It runs in the browser, so it can be bypassed by simply not running it, and the fingerprint checksum salt ships in the bundle. It raises the bar against casual `localStorage` tampering — nothing more. In production:
-- Enforce authorization server-side; never trust a client-reported role
-- Replace the timezone proxy in `resolveLocation()` with server-side geo-IP
-- Move the detectors server-side, where the event log cannot be discarded by the client
+| Signal | Trigger | Action |
+|--------|---------|--------|
+| **Privilege escalation** | A request tries to set a field a client may never set (`role`, `status`, `password_hash`, …), or a session accumulates 5 authorization denials in 15 minutes. | Field tampering revokes the session. Repeated denials are recorded. |
+| **Impossible travel** | A session moves more than 500 km at an implied speed above 1000 km/h between two requests. | Crossing a border forces re-authentication; movement within one country is recorded. |
+| **Data access volume** | A session reads 5000 records in an hour, or 10× its own trailing 14-day baseline once past a 200-record floor. | Recorded, and surfaced to admins. |
+
+Every detector requires corroboration — a distance floor as well as a speed, an
+absolute floor as well as a ratio — because a false positive costs a real user
+their session. Repeats fold into the open event rather than raising a new one,
+so an incident is one row an admin can act on.
+
+**Limitations worth knowing:**
+- **Impossible travel needs CDN geo headers** (`x-vercel-ip-latitude` /
+  `cf-iplatitude` and friends). There is no IP-geolocation service in the app,
+  so behind a proxy that strips them — or locally — this detector stays silent
+  rather than guessing. The other two are unaffected.
+- Those headers must be set by a **trusted proxy**. Anything a client can send,
+  a client can forge, so a deployment that passes them through unfiltered lets a
+  caller choose its own apparent location.
+- `require_reauth` ends the session outright for accounts without MFA, because
+  clearing the MFA flag alone would be a no-op there. Accounts with a second
+  factor keep the session and are re-challenged.
 
 ### Payment Flow (Demo Mode)
 The EcoCash modal simulates the USSD payment flow. In production:

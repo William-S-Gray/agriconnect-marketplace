@@ -4,6 +4,7 @@ import { sql } from '@/lib/db';
 import { requireAdmin } from '@/lib/rbac';
 import { revokeAllSessionsForUser } from '@/lib/session';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { observeDataAccess } from '@/lib/anomaly-monitor';
 
 export const runtime = 'nodejs';
 
@@ -28,6 +29,10 @@ export async function GET() {
      ORDER BY u.created_at DESC
      LIMIT 200
   `) as Record<string, unknown>[];
+
+  // Bulk read of personal data: the most valuable thing a compromised admin
+  // session can do quietly. Counted against this admin's own usual volume.
+  await observeDataAccess(auth.user.id, auth.user.sessionId, 'admin_users', users.length);
 
   // Note the explicit column list: password_hash and mfa_secret are never
   // selected, so they cannot leak through this response.

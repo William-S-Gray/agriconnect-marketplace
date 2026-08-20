@@ -83,9 +83,16 @@ export default async function AdminPage() {
      ORDER BY date_part('dow', created_at)
   `;
 
+  const [security] = await sql<{ open_high: string }>`
+    SELECT count(*) AS open_high
+      FROM security_events
+     WHERE severity = 'high' AND acknowledged_at IS NULL
+  `;
+
   return (
     <AdminTabs
       email={session.email}
+      securityAlerts={Number(security?.open_high ?? 0)}
       stats={{
         gmv: num(stats?.gmv), revenue: num(stats?.revenue),
         users: Number(stats?.users ?? 0), farmers: Number(stats?.farmers ?? 0),

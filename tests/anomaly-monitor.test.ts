@@ -9,6 +9,10 @@ import { randomUUID } from 'node:crypto';
  * inside monitoring never propagates into the request being monitored.
  */
 
+// Geo headers are only read when an edge is declared trustworthy, so the
+// suite declares one. The tests below cover the unset case explicitly.
+process.env.ANOMALY_TRUSTED_PROXY = 'vercel';
+
 let requestGeo: Record<string, string> = {};
 
 vi.mock('next/headers', () => ({
@@ -22,6 +26,8 @@ const {
   observeDataAccess,
   observeSessionLocation,
   geoFromHeaders,
+  countryFromHeaders,
+  trustedProxy,
 } = await import('@/lib/anomaly-monitor');
 const { sql, pool } = await import('@/lib/pool');
 const { hashPassword } = await import('@/lib/password');
@@ -217,13 +223,52 @@ describe('geo headers', () => {
     expect(point).toEqual({ latitude: -17.8252, longitude: 31.0335, country: 'ZW' });
   });
 
-  it('reads Cloudflare headers', () => {
-    const point = geoFromHeaders(new Headers({
+  it('reads Cloudflare headers when Cloudflare is the declared edge', () => {
+    process.env.ANOMALY_TRUSTED_PROXY = 'cloudflare';
+    try {
+      const point = geoFromHeaders(new Headers({
+        'cf-iplatitude': '51.5074',
+        'cf-iplongitude': '-0.1278',
+        'cf-ipcountry': 'GB',
+      }));
+      expect(point?.country).toBe('GB');
+    } finally {
+      process.env.ANOMALY_TRUSTED_PROXY = 'vercel';
+    }
+  });
+
+  it('ignores another platform’s headers', () => {
+    // Configured for Vercel, so Cloudflare's headers are just client input —
+    // and they are the set Vercel does not overwrite.
+    expect(geoFromHeaders(new Headers({
       'cf-iplatitude': '51.5074',
       'cf-iplongitude': '-0.1278',
       'cf-ipcountry': 'GB',
-    }));
-    expect(point?.country).toBe('GB');
+    }))).toBeNull();
+  });
+
+  it('ignores geo entirely when no edge is trusted', () => {
+    delete process.env.ANOMALY_TRUSTED_PROXY;
+    try {
+      expect(trustedProxy()).toBeNull();
+      expect(geoFromHeaders(new Headers({
+        'x-vercel-ip-latitude': '51.5074',
+        'x-vercel-ip-longitude': '-0.1278',
+        'x-vercel-ip-country': 'GB',
+      }))).toBeNull();
+      expect(countryFromHeaders(new Headers({ 'x-vercel-ip-country': 'GB' }))).toBeNull();
+    } finally {
+      process.env.ANOMALY_TRUSTED_PROXY = 'vercel';
+    }
+  });
+
+  it('rejects an unrecognised value rather than guessing', () => {
+    process.env.ANOMALY_TRUSTED_PROXY = 'nginx';
+    try {
+      expect(trustedProxy()).toBeNull();
+    } finally {
+      process.env.ANOMALY_TRUSTED_PROXY = 'vercel';
+    }
   });
 
   it('returns null when the platform sends no geo', () => {
@@ -349,6 +394,70 @@ describe('impossible travel, end to end', () => {
       at: new Date(Date.now() - 60 * 1000),
     });
     expect(await events()).toHaveLength(0);
+  });
+});
+
+describe('travel detection with country but no coordinates', () => {
+  it('flags a country change and records it', async () => {
+    requestGeo = { 'x-vercel-ip-country': 'GB' };
+    const action = await observeSessionLocation(userId, sessionId, {
+      ip: '203.0.113.1', country: 'ZW',
+      latitude: null, longitude: null,
+      at: new Date(Date.now() - 10 * 60 * 1000),
+    });
+    // Weaker evidence than coordinates, so recorded rather than acted on.
+    expect(action).toBe('record_only');
+
+    const [event] = await events();
+    expect(event!.kind).toBe('impossible_travel');
+    expect(event!.severity).toBe('medium');
+    expect(event!.detail.trigger).toBe('country_only');
+  });
+
+  it('leaves the session usable', async () => {
+    requestGeo = { 'x-vercel-ip-country': 'GB' };
+    await observeSessionLocation(userId, sessionId, {
+      ip: '203.0.113.1', country: 'ZW',
+      latitude: null, longitude: null,
+      at: new Date(Date.now() - 10 * 60 * 1000),
+    });
+
+    const [session] = await sql<{ revoked_at: Date | null }>`
+      SELECT revoked_at FROM sessions WHERE id = ${sessionId}
+    `;
+    expect(session!.revoked_at).toBeNull();
+  });
+
+  it('records the country so the next request has something to compare', async () => {
+    requestGeo = { 'x-vercel-ip-country': 'ZA' };
+    await observeSessionLocation(userId, sessionId, {
+      ip: null, country: null, latitude: null, longitude: null, at: null,
+    });
+
+    const [row] = await sql<{ last_country: string }>`
+      SELECT last_country FROM sessions WHERE id = ${sessionId}
+    `;
+    expect(row!.last_country).toBe('ZA');
+  });
+
+  it('stays quiet when no edge is trusted, however the headers look', async () => {
+    delete process.env.ANOMALY_TRUSTED_PROXY;
+    try {
+      requestGeo = {
+        'x-vercel-ip-latitude': '51.5074',
+        'x-vercel-ip-longitude': '-0.1278',
+        'x-vercel-ip-country': 'GB',
+      };
+      const action = await observeSessionLocation(userId, sessionId, {
+        ip: '203.0.113.1', country: 'ZW',
+        latitude: -17.8252, longitude: 31.0335,
+        at: new Date(Date.now() - 60 * 1000),
+      });
+      expect(action).toBeNull();
+      expect(await events()).toHaveLength(0);
+    } finally {
+      process.env.ANOMALY_TRUSTED_PROXY = 'vercel';
+    }
   });
 });
 

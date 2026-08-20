@@ -3,6 +3,7 @@ import { AlertTriangle, ShieldAlert, Activity, ArrowLeft } from 'lucide-react';
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
 import { iso } from '@/lib/serialize';
+import { trustedProxy } from '@/lib/anomaly-monitor';
 import { AcknowledgeButton } from './acknowledge-button';
 
 export const dynamic = 'force-dynamic';
@@ -61,6 +62,10 @@ export default async function AdminSecurityPage() {
       FROM security_events
   `;
 
+  // Travel detection is only as good as the edge that reports position, so the
+  // page states which detectors are actually live rather than implying three.
+  const proxy = trustedProxy();
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -79,6 +84,27 @@ export default async function AdminSecurityPage() {
           attempts, detected as requests are served.
         </p>
 
+        {proxy === null ? (
+          <div className="neo-inset rounded-xl p-3 mt-4 max-w-2xl border-l-4 border-amber-500">
+            <p className="text-sm text-foreground font-medium">
+              Travel detection is inactive
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Location comes from CDN headers, and a header is only evidence if
+              the edge overwrites whatever the client sent. Set{' '}
+              <code className="font-mono">ANOMALY_TRUSTED_PROXY</code> to{' '}
+              <code className="font-mono">vercel</code> or{' '}
+              <code className="font-mono">cloudflare</code> once deployed behind
+              one. Volume and privilege-escalation detection are unaffected.
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-2">
+            Trusting location headers from{' '}
+            <span className="text-foreground font-medium">{proxy}</span>.
+          </p>
+        )}
+
         <div className="grid grid-cols-2 gap-3 my-6 max-w-md">
           <Stat
             label="Unacknowledged, high severity"
@@ -93,9 +119,7 @@ export default async function AdminSecurityPage() {
             <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-foreground font-medium">No anomalies recorded</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-              Impossible travel needs latitude and longitude headers from the CDN.
-              Running without them — locally, or behind a proxy that strips them —
-              the other two detectors still work, but this one stays silent.
+              Nothing has tripped a detector.
             </p>
           </div>
         ) : (

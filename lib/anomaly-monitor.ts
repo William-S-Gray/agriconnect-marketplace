@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { sql } from './db';
 import {
   checkImpossibleTravel,
+  checkCountryHop,
   checkDataVolume,
   checkPrivilegeEscalation,
   actionFor,
@@ -46,18 +47,62 @@ const DEDUPE_WINDOW_MINUTES = 60;
 // ─── Where the request came from ──────────────────────────────────────────────
 
 /**
- * Geo attached by the CDN. There is no IP-geolocation service in this app, so
- * these headers are the only source — and when the platform does not set them,
- * position is simply unknown and impossible travel cannot be evaluated.
+ * Which edge, if any, is trusted to have set the geo headers.
  *
- * Vercel and Cloudflare are both handled because the deployment target is not
- * yet fixed. Locally none of these are present, so the detector stays quiet.
+ * Geo arrives as request headers, and a header is only evidence if something
+ * upstream guarantees the client did not write it. Vercel and Cloudflare both
+ * overwrite their own headers at the edge, so behind either they are
+ * trustworthy — behind anything else, or nothing, a caller can simply state
+ * where it is.
+ *
+ * That matters more for evasion than for mischief: someone holding a stolen
+ * cookie who can name their own location can pin it to the victim's last known
+ * position and walk straight past the travel detector. Trusting these headers
+ * by default would not be a weak control, it would be an off switch that
+ * reports itself as on.
+ *
+ * So it is opt-in. Unset, geo is ignored, travel detection stays inert, and
+ * /admin/security says so rather than implying coverage that is not there.
+ */
+export type TrustedProxy = 'vercel' | 'cloudflare' | null;
+
+export function trustedProxy(): TrustedProxy {
+  const configured = process.env.ANOMALY_TRUSTED_PROXY?.trim().toLowerCase();
+  if (configured === 'vercel' || configured === 'cloudflare') return configured;
+  return null;
+}
+
+const GEO_HEADERS = {
+  vercel: {
+    latitude: 'x-vercel-ip-latitude',
+    longitude: 'x-vercel-ip-longitude',
+    country: 'x-vercel-ip-country',
+  },
+  cloudflare: {
+    latitude: 'cf-iplatitude',
+    longitude: 'cf-iplongitude',
+    country: 'cf-ipcountry',
+  },
+} as const;
+
+/**
+ * Position reported by the trusted edge.
+ *
+ * Only the configured platform's headers are read: honouring Cloudflare's
+ * headers while deployed on Vercel would let a client supply the set the
+ * platform does not overwrite.
+ *
+ * `country` can be present when coordinates are not, which is why it is
+ * returned separately — the country-only detector still works in that case.
  */
 export function geoFromHeaders(h: Headers): GeoPoint | null {
-  const latitude = h.get('x-vercel-ip-latitude') ?? h.get('cf-iplatitude');
-  const longitude = h.get('x-vercel-ip-longitude') ?? h.get('cf-iplongitude');
-  const country =
-    h.get('x-vercel-ip-country') ?? h.get('cf-ipcountry') ?? null;
+  const proxy = trustedProxy();
+  if (!proxy) return null;
+
+  const names = GEO_HEADERS[proxy];
+  const latitude = h.get(names.latitude);
+  const longitude = h.get(names.longitude);
+  const country = h.get(names.country);
 
   if (latitude === null || longitude === null) return null;
 
@@ -69,6 +114,13 @@ export function geoFromHeaders(h: Headers): GeoPoint | null {
   return isValidGeoPoint(point) ? point : null;
 }
 
+/** The trusted edge's country, which often survives where coordinates do not. */
+export function countryFromHeaders(h: Headers): string | null {
+  const proxy = trustedProxy();
+  if (!proxy) return null;
+  return h.get(GEO_HEADERS[proxy].country);
+}
+
 function requestHeaders(): Headers | null {
   try {
     return headers();
@@ -78,6 +130,13 @@ function requestHeaders(): Headers | null {
   }
 }
 
+/**
+ * Client IP, from the same forwarded headers the rate limiter uses.
+ *
+ * Recorded for context only — nothing here makes a decision on it. It is worth
+ * knowing that without a trusted proxy in front this is as forgeable as the geo
+ * headers, so it is evidence about a request, not proof about an origin.
+ */
 function ipFrom(h: Headers): string | null {
   const forwarded = h.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0]!.trim();
@@ -225,14 +284,35 @@ export async function observeSessionLocation(
 
     const ip = ipFrom(h);
     const point = geoFromHeaders(h);
+    const now = new Date();
 
-    // No geo from the platform: record the IP for context but claim nothing
-    // about movement.
+    // No coordinates. Country alone still supports the weaker detector, and is
+    // the header most likely to survive a proxy that drops the rest.
     if (!point) {
-      if (ip && ip !== previous.ip) {
-        await sql`UPDATE sessions SET last_ip = ${ip} WHERE id = ${sessionId}`;
+      const country = countryFromHeaders(h);
+
+      const anomaly =
+        country && previous.at
+          ? checkCountryHop(
+              { country: previous.country, at: new Date(previous.at) },
+              { country, at: now },
+            )
+          : null;
+
+      const moved = (ip && ip !== previous.ip) || (country && country !== previous.country);
+      if (moved) {
+        await sql`
+          UPDATE sessions
+             SET last_ip = ${ip},
+                 last_country = ${country ?? previous.country},
+                 last_geo_at = CASE WHEN ${country}::text IS NULL
+                                    THEN last_geo_at ELSE now() END
+           WHERE id = ${sessionId}
+        `;
       }
-      return null;
+
+      if (!anomaly) return null;
+      return await report(userId, sessionId, anomaly, ip);
     }
 
     const unchanged =
@@ -241,7 +321,6 @@ export async function observeSessionLocation(
       previous.ip === ip;
     if (unchanged) return null;
 
-    const now = new Date();
     const priorSighting: Sighting | null =
       previous.at !== null &&
       previous.latitude !== null &&

@@ -138,6 +138,51 @@ export function checkImpossibleTravel(
   };
 }
 
+/**
+ * A country change with no coordinates to go with it.
+ *
+ * Country is the geo header most likely to survive a proxy, so this keeps the
+ * travel detector useful where latitude and longitude are missing. It is
+ * genuinely weaker evidence — a border town or a VPN exit node flips country
+ * without anyone travelling — so it never rises above medium, and therefore
+ * never costs anyone their session.
+ */
+/** Readable elapsed time for an admin, rather than "0 minutes". */
+function describeElapsed(seconds: number): string {
+  const whole = Math.round(seconds);
+  if (whole < 60) return `${whole}s`;
+  const minutes = Math.round(whole / 60);
+  return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+}
+
+export const COUNTRY_HOP_WINDOW_MINUTES = 60;
+
+export function checkCountryHop(
+  previous: { country: string | null; at: Date } | null,
+  current: { country: string | null; at: Date },
+): Anomaly | null {
+  if (!previous) return null;
+  if (!previous.country || !current.country) return null;
+  if (previous.country === current.country) return null;
+
+  const elapsedSeconds = (current.at.getTime() - previous.at.getTime()) / 1000;
+  if (elapsedSeconds <= 0) return null;
+  if (elapsedSeconds > COUNTRY_HOP_WINDOW_MINUTES * 60) return null;
+
+  return {
+    kind: 'impossible_travel',
+    severity: 'medium',
+    summary: `Session moved from ${previous.country} to ${current.country} in ${describeElapsed(elapsedSeconds)}`,
+    detail: {
+      fromCountry: previous.country,
+      toCountry: current.country,
+      elapsedSeconds: Math.round(elapsedSeconds),
+      // No coordinates were available, so no distance or speed was measured.
+      trigger: 'country_only',
+    },
+  };
+}
+
 // ─── Unusual data access volume ───────────────────────────────────────────────
 
 export interface VolumeObservation {

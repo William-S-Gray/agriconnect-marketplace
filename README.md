@@ -198,13 +198,17 @@ their session. Repeats fold into the open event rather than raising a new one,
 so an incident is one row an admin can act on.
 
 **Limitations worth knowing:**
-- **Impossible travel needs CDN geo headers** (`x-vercel-ip-latitude` /
-  `cf-iplatitude` and friends). There is no IP-geolocation service in the app,
-  so behind a proxy that strips them — or locally — this detector stays silent
-  rather than guessing. The other two are unaffected.
-- Those headers must be set by a **trusted proxy**. Anything a client can send,
-  a client can forge, so a deployment that passes them through unfiltered lets a
-  caller choose its own apparent location.
+- **Travel detection is opt-in via `ANOMALY_TRUSTED_PROXY`** (`vercel` or
+  `cloudflare`). Geo arrives as request headers, and a header is only evidence
+  if the edge overwrites whatever the client sent. Unset, geo is ignored
+  entirely and `/admin/security` says travel detection is inactive — trusting
+  those headers by default would not be a weak control, it would be an off
+  switch that reports itself as on. Volume and privilege-escalation detection
+  are unaffected.
+- Where the edge reports a **country but no coordinates**, a country change
+  within an hour is recorded at medium severity. It is weaker evidence — a
+  border town or a VPN exit node flips country without anyone travelling — so it
+  never acts on a session.
 - `require_reauth` ends the session outright for accounts without MFA, because
   clearing the MFA flag alone would be a no-op there. Accounts with a second
   factor keep the session and are re-challenged.

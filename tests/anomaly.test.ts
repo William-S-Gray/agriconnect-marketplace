@@ -3,6 +3,8 @@ import {
   haversineKm,
   isValidGeoPoint,
   checkImpossibleTravel,
+  checkCountryHop,
+  COUNTRY_HOP_WINDOW_MINUTES,
   checkDataVolume,
   checkPrivilegeEscalation,
   actionFor,
@@ -180,6 +182,76 @@ describe('impossible travel', () => {
       'crossedBorder', 'distanceKm', 'elapsedSeconds',
       'fromCountry', 'impliedSpeedKmh', 'toCountry',
     ]);
+  });
+});
+
+describe('country-only travel, where coordinates are missing', () => {
+  const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000);
+  const now = new Date();
+
+  it('flags a country change inside the window', () => {
+    const result = checkCountryHop(
+      { country: 'ZW', at: minutesAgo(10) },
+      { country: 'GB', at: now },
+    );
+    expect(result?.kind).toBe('impossible_travel');
+    expect(result?.detail.trigger).toBe('country_only');
+  });
+
+  it('never exceeds medium, so it cannot cost anyone their session', () => {
+    // A border town or a VPN exit node flips country without anyone moving.
+    const result = checkCountryHop(
+      { country: 'ZW', at: minutesAgo(1) },
+      { country: 'GB', at: now },
+    );
+    expect(result?.severity).toBe('medium');
+    expect(actionFor(result!)).toBe('record_only');
+  });
+
+  it('ignores a change that took longer than the window', () => {
+    expect(
+      checkCountryHop(
+        { country: 'ZW', at: minutesAgo(COUNTRY_HOP_WINDOW_MINUTES + 1) },
+        { country: 'GB', at: now },
+      ),
+    ).toBeNull();
+  });
+
+  it('says nothing when the country did not change', () => {
+    expect(
+      checkCountryHop({ country: 'ZW', at: minutesAgo(1) }, { country: 'ZW', at: now }),
+    ).toBeNull();
+  });
+
+  it('says nothing when either country is unknown', () => {
+    expect(
+      checkCountryHop({ country: null, at: minutesAgo(1) }, { country: 'GB', at: now }),
+    ).toBeNull();
+    expect(
+      checkCountryHop({ country: 'ZW', at: minutesAgo(1) }, { country: null, at: now }),
+    ).toBeNull();
+  });
+
+  it('says nothing without a previous sighting', () => {
+    expect(checkCountryHop(null, { country: 'GB', at: now })).toBeNull();
+  });
+
+  it('describes a sub-minute hop in seconds rather than "0 minutes"', () => {
+    const result = checkCountryHop(
+      { country: 'ZW', at: new Date(Date.now() - 3000) },
+      { country: 'GB', at: new Date() },
+    )!;
+    expect(result.summary).toContain('3s');
+    expect(result.summary).not.toContain('0 minutes');
+  });
+
+  it('claims no distance or speed it did not measure', () => {
+    const result = checkCountryHop(
+      { country: 'ZW', at: minutesAgo(10) },
+      { country: 'GB', at: now },
+    )!;
+    expect(result.detail).not.toHaveProperty('distanceKm');
+    expect(result.detail).not.toHaveProperty('impliedSpeedKmh');
   });
 });
 

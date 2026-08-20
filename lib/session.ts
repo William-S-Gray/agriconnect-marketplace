@@ -186,6 +186,31 @@ async function touchSession(
   }
 
   const rotated = randomBytes(32).toString('base64url');
+
+  // The cookie is written BEFORE the new hash is stored, deliberately.
+  //
+  // Next.js forbids cookie writes while a server component renders, and that
+  // throw arrives after the UPDATE if the order is reversed — leaving the
+  // database holding a hash of a token the browser was never given. The user
+  // is then silently logged out on their next request, and the page they
+  // asked for 500s. Writing the cookie first means a read-only context fails
+  // before anything is persisted.
+  try {
+    cookies().set(sessionCookieName(), rotated, cookieOptions(absoluteExpiresAt));
+  } catch {
+    // Read-only context (a page render). Slide the idle window so the session
+    // stays alive, but leave last_used_at untouched: it is what marks rotation
+    // as still owed, so the next request that CAN set cookies — a route
+    // handler, server action or middleware — performs it.
+    await sql`
+      UPDATE sessions
+         SET expires_at = ${newIdle.toISOString()}
+       WHERE id = ${sessionId}
+    `;
+    return;
+  }
+
+  void currentToken;
   await sql`
     UPDATE sessions
        SET token_hash   = ${hashToken(rotated)},
@@ -193,8 +218,6 @@ async function touchSession(
            expires_at   = ${newIdle.toISOString()}
      WHERE id = ${sessionId}
   `;
-  void currentToken;
-  cookies().set(sessionCookieName(), rotated, cookieOptions(absoluteExpiresAt));
 }
 
 /** Marks this session's MFA challenge as satisfied. */

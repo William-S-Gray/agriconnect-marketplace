@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { sql, type Role, type UserRow } from './db';
+import { observeSessionLocation } from './anomaly-monitor';
 import { useSecureCookies } from './env';
 
 /**
@@ -109,6 +110,11 @@ export async function getSession(): Promise<SessionUser | null> {
            s.absolute_expires_at,
            s.revoked_at,
            s.last_used_at,
+           s.last_ip,
+           s.last_country,
+           s.last_latitude,
+           s.last_longitude,
+           s.last_geo_at,
            u.id            AS user_id,
            u.email,
            u.role,
@@ -148,6 +154,16 @@ export async function getSession(): Promise<SessionUser | null> {
     new Date(row.absolute_expires_at as string),
     token,
   );
+
+  // Real-time anomaly detection, using the row already read above so an
+  // unmoved session costs no extra query. Never throws — see the monitor.
+  await observeSessionLocation(row.user_id as string, row.session_id as string, {
+    ip: row.last_ip as string | null,
+    country: row.last_country as string | null,
+    latitude: row.last_latitude as number | null,
+    longitude: row.last_longitude as number | null,
+    at: (row.last_geo_at as Date | null) ?? null,
+  });
 
   return {
     id: row.user_id as string,

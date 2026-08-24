@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { sql, type Role } from './db';
 import { getSession, type SessionUser } from './session';
+import { observeDenial } from './anomaly-monitor';
 
 /**
  * Server-side authorization. This is the security boundary — the UI's role
@@ -78,7 +79,13 @@ export async function requireRole(
 ): Promise<Ok | Fail> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
-  if (!allowed.includes(auth.user.role)) return forbidden();
+  if (!allowed.includes(auth.user.role)) {
+    // Every denial the application issues passes through here, so counting it
+    // once at this point covers every endpoint without each one remembering.
+    // A run of denials from one session is someone trying doors.
+    await observeDenial(auth.user.id, auth.user.sessionId);
+    return forbidden();
+  }
   return auth;
 }
 

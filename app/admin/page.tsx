@@ -1,6 +1,7 @@
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
 import { num, iso } from '@/lib/serialize';
+import { observeDataAccess } from '@/lib/anomaly-monitor';
 import { AdminTabs } from './admin-tabs';
 
 export const dynamic = 'force-dynamic';
@@ -83,9 +84,27 @@ export default async function AdminPage() {
      ORDER BY date_part('dow', created_at)
   `;
 
+  // The dashboard is the widest cross-user read in the application — every
+  // farmer, order and dispute in one request. Instrumenting only the JSON
+  // endpoints would have left the page that actually exposes the data
+  // uncounted, so a scripted loop over it would not have registered at all.
+  await observeDataAccess(
+    session.id,
+    session.sessionId,
+    'admin_records',
+    farmers.length + orders.length + disputes.length,
+  );
+
+  const [security] = await sql<{ open_high: string }>`
+    SELECT count(*) AS open_high
+      FROM security_events
+     WHERE severity = 'high' AND acknowledged_at IS NULL
+  `;
+
   return (
     <AdminTabs
       email={session.email}
+      securityAlerts={Number(security?.open_high ?? 0)}
       stats={{
         gmv: num(stats?.gmv), revenue: num(stats?.revenue),
         users: Number(stats?.users ?? 0), farmers: Number(stats?.farmers ?? 0),

@@ -33,6 +33,18 @@ afterAll(async () => {
   await pool.end();
 });
 
+/**
+ * Waits for the start of the next TOTP step when the current one is nearly
+ * over, so a test that generates a code and then verifies it twice cannot have
+ * the step roll underneath it.
+ */
+async function awaitFreshTimeStep(minimumRemainingSeconds = 20): Promise<void> {
+  const period = 30_000;
+  const remaining = period - (Date.now() % period);
+  if (remaining >= minimumRemainingSeconds * 1000) return;
+  await new Promise((resolve) => setTimeout(resolve, remaining + 250));
+}
+
 describe('secret encryption at rest', () => {
   it('round-trips a secret', () => {
     const secret = generateSecret({ length: 20 });
@@ -148,11 +160,17 @@ describe('code reuse', () => {
     const challenge = await beginEnrolment(userId, email);
     await confirmEnrolment(userId, generateSync({ secret: challenge.secret, digits: 6, period: 30 }));
 
+    // Both verifications must land in the step the code was generated for, and
+    // each one costs an Argon2 hash and a round trip — enough to cross a 30s
+    // boundary if the step is nearly over. Start on a fresh step instead of
+    // racing the clock.
+    await awaitFreshTimeStep();
+
     const code = generateSync({ secret: challenge.secret, digits: 6, period: 30 });
     expect(await verifyUserTotp(userId, code)).toBe(true);
     // Replay inside the same time step must fail.
     expect(await verifyUserTotp(userId, code)).toBe(false);
-  });
+  }, 60_000);
 
   it('refuses any code when MFA is not enabled', async () => {
     const challenge = await beginEnrolment(userId, email); // leaves mfa_enabled false

@@ -1,8 +1,11 @@
 name: CI
 
+# Pull requests only. A push to main is, on this repository, a merge of a PR
+# that CI has just passed, so running the whole suite again on the merge commit
+# spent double the minutes for near-identical signal. Trade-off worth naming:
+# if main moves between a PR's last run and its merge, that combination is no
+# longer tested automatically — so update a stale branch before merging it.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -14,7 +17,15 @@ concurrency:
 jobs:
   verify:
     name: typecheck · lint · test · build
-    runs-on: ubuntu-latest
+    # Self-hosted: GitHub-hosted minutes are metered on a private repository,
+    # and this one exhausted them. Safe here specifically BECAUSE the repo is
+    # private — on a public repo a fork's pull request would run its own code
+    # on this machine. Do not make this repository public while these jobs
+    # target a self-hosted runner.
+    #
+    # Jobs queue rather than fail when the runner is offline, so a PR check
+    # that sits pending usually means the runner is not up.
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 20
 
     # Ephemeral services rather than the shared Neon dev database: CI must not
@@ -28,7 +39,11 @@ jobs:
           POSTGRES_USER: agri
           POSTGRES_PASSWORD: agri
           POSTGRES_DB: agriconnect_test
-        ports: ['5432:5432']
+        # Non-default host port on purpose. A GitHub-hosted VM had nothing else
+        # listening; a self-hosted runner is somebody's workstation, and 5432
+        # is very likely already taken there — the bind would fail and the job
+        # would die before a single test ran.
+        ports: ['55433:5432']
         options: >-
           --health-cmd "pg_isready -U agri"
           --health-interval 5s
@@ -37,7 +52,7 @@ jobs:
 
       redis:
         image: redis:7-alpine
-        ports: ['6379:6379']
+        ports: ['56380:6379']  # see the note on the postgres port
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -50,19 +65,25 @@ jobs:
       # job scans for, and allowlisting workflow files would blind it to a real
       # credential pasted into one later.
       PGHOST: 127.0.0.1
-      PGPORT: '5432'
+      PGPORT: '55433'
       PGUSER: agri
       PGPASSWORD: agri
       PGDATABASE: agriconnect_test
       # Exercises the Redis-backed rate limiter; without it those suites skip.
-      TEST_REDIS_URL: redis://127.0.0.1:6379
+      TEST_REDIS_URL: redis://127.0.0.1:56380
       # Non-secret values: this database is destroyed with the runner.
       SESSION_SECRET: ci-session-secret-not-used-outside-ci
       MFA_ENCRYPTION_KEY: ci-mfa-encryption-key-not-used-outside-ci
       APP_URL: http://localhost:3000
 
     steps:
+      # clean: true is the default, but it is load-bearing on a persistent
+      # runner in a way it never was on a throwaway VM — the workspace survives
+      # between runs, so leftovers from a previous branch would otherwise be
+      # present in this one.
       - uses: actions/checkout@v4
+        with:
+          clean: true
 
       - uses: actions/setup-node@v4
         with:
@@ -100,7 +121,7 @@ jobs:
   # mistake in this repo that would be expensive to undo.
   secrets:
     name: no committed secrets
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4

@@ -31,7 +31,7 @@ const TOKEN_TTL_MINUTES = 30;
  * issued tokens for the same user are invalidated when a new one is requested.
  */
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const ip = clientIp(request.headers);

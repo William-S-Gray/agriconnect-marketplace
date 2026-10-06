@@ -35,18 +35,16 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // The only next/image use is a data: URI rendered unoptimized. Turning the
-  // optimizer off removes the /_next/image endpoint's attack surface, which
-  // carries unpatched advisories on Next 14 (see GHSA-2xp9-vwfh-vxw4).
+  // The only next/image use is a data: URI rendered unoptimized, so the
+  // /_next/image optimizer is pure attack surface here — it has carried
+  // unauthenticated RCE and DoS advisories (e.g. GHSA-2xp9-vwfh-vxw4). Off.
   images: { unoptimized: true },
-  experimental: {
-    /**
-     * Loaded at runtime by Node rather than bundled by webpack.
-     * @node-rs/argon2 ships a native .node binary, and pg pulls in optional
-     * native bindings; webpack cannot parse either.
-     */
-    serverComponentsExternalPackages: ['@node-rs/argon2', 'pg'],
-  },
+  /**
+   * Loaded at runtime by Node rather than bundled by webpack.
+   * @node-rs/argon2 ships a native .node binary, and pg pulls in optional
+   * native bindings; webpack cannot parse either.
+   */
+  serverExternalPackages: ['@node-rs/argon2', 'pg'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

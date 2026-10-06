@@ -59,8 +59,9 @@ async function loadOrder(orderId: string, userId: string): Promise<OrderRow | nu
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
+  const params = await props.params;
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) {
     return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   }
@@ -87,9 +88,10 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
-  const csrf = verifyOrigin('PATCH');
+  const params = await props.params;
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) {

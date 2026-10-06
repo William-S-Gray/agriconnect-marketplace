@@ -31,7 +31,7 @@ const createSchema = z.object({
  * farmer cannot create a listing attributed to someone else.
  */
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireRole('farmer');
@@ -82,7 +82,7 @@ const patchSchema = z.object({
 
 /** Updates a listing. Ownership is checked before anything is written. */
 export async function PATCH(request: Request) {
-  const csrf = verifyOrigin('PATCH');
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireRole('farmer', 'admin');

@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
  * could keep using.
  */
 export async function POST() {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   await destroySession();

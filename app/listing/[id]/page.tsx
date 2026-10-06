@@ -12,7 +12,8 @@ import { AddToCart } from './add-to-cart';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
+export default async function ListingDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   // The id comes from the URL, so it is validated as a uuid before it reaches a
   // query — an invalid cast would otherwise surface as a 500.
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound();

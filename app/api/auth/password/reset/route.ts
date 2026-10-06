@@ -33,7 +33,7 @@ const schema = z.object({
  * attacker logged in with the password already changed.
  */
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const ip = clientIp(request.headers);

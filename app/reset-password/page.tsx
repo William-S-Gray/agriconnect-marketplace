@@ -10,11 +10,12 @@ export const metadata = { title: 'Set a new password — AgriConnect' };
  * only so it can be posted back; it is never stored, and the server validates
  * it by hash on submission.
  */
-export default function ResetPasswordPage({
-  searchParams,
+export default async function ResetPasswordPage({
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   return (
     <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <Link href="/" className="flex items-center gap-2 mb-8">

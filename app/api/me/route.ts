@@ -48,7 +48,7 @@ const buyerPatch = z.object({
 });
 
 export async function PATCH(request: Request) {
-  const csrf = verifyOrigin('PATCH');
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireUser();

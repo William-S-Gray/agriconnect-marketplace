@@ -71,7 +71,7 @@ export default async function MarketPricesPage({
               currency
               radius={[6, 6, 0, 0]}
               margin={{ top: 0, right: 0, left: -10, bottom: 0 }}
-              cellColor={(i) => COLORS[i % COLORS.length]!}
+              cellColors={COLORS}
             />
           </div>
         )}

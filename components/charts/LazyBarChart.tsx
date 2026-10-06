@@ -1,3 +1,11 @@
+'use client';
+
+// A client component on purpose. React.lazy belongs to the client, and recharts
+// is built on class components, which do not exist in the React Server
+// Components environment — rendered from a server page without this
+// directive, recharts was evaluated on the server and every page with a chart
+// (/prices, /farm/earnings) failed with "Super expression must either be null
+// or a function".
 import { lazy, Suspense } from 'react';
 import type { BarChartPanelProps } from './BarChartPanel';
 

@@ -315,7 +315,7 @@ export function AdminTabs({
                 <h2 className="font-heading text-base font-semibold text-foreground mb-4">GMV by day (USD)</h2>
                 <LazyBarChart
                   data={weekly} xKey="day" dataKey="gmv" name="GMV" height={220} currency
-                  cellColor={(i) => (i === weekly.length - 1 ? '#f5a623' : '#4f7c3f')}
+                  cellColors={weekly.map((_, i) => (i === weekly.length - 1 ? '#f5a623' : '#4f7c3f'))}
                 />
               </div>
             )}

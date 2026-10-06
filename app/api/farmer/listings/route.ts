@@ -15,8 +15,9 @@ const createSchema = z.object({
   quantity_unit: z.string().trim().min(1).max(20),
   price_per_unit: z.coerce.number().nonnegative().max(1_000_000),
   min_order_qty: z.coerce.number().positive().max(1_000_000).default(1),
-  harvest_date: z.string().trim().max(10).optional(),
-  available_until: z.string().trim().max(10).optional(),
+  // A real calendar date or blank; anything else used to reach Postgres and 500.
+  harvest_date: z.union([z.literal(''), z.string().date()]).optional(),
+  available_until: z.union([z.literal(''), z.string().date()]).optional(),
   province: z.string().trim().min(2).max(80),
   district: z.string().trim().max(80).default(''),
   is_organic: z.boolean().default(false),
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
   if (!farmerId) {
     return NextResponse.json({ error: 'No farmer profile.', code: 'no_profile' }, { status: 403 });
   }
+  if (await farmerIsSuspended(farmerId)) return suspended();
 
   let body: unknown;
   try { body = await request.json(); } catch {
@@ -103,14 +105,42 @@ export async function PATCH(request: Request) {
     );
   }
 
+  const isAdmin = auth.user.role === 'admin';
+  if (!isAdmin) {
+    const farmerId = await farmerIdForUser(auth.user.id);
+    if (!farmerId || (await farmerIsSuspended(farmerId))) return suspended();
+  }
+
   const d = parsed.data;
-  await sql`
+  // A REMOVED listing stays removed unless an admin restores it: REMOVED is how
+  // a listing is taken down, and the owner must not be able to undo that.
+  const updated = await sql`
     UPDATE listings
        SET status         = COALESCE(${d.status ?? null}::listing_status, status),
-           price_per_unit = COALESCE(${d.price_per_unit ?? null}, price_per_unit),
-           quantity_kg    = COALESCE(${d.quantity_kg ?? null}, quantity_kg),
+           price_per_unit = COALESCE(${d.price_per_unit ?? null}::numeric, price_per_unit),
+           quantity_kg    = COALESCE(${d.quantity_kg ?? null}::numeric, quantity_kg),
            updated_at     = now()
      WHERE id = ${d.id}
+       AND (${isAdmin}::boolean OR status <> 'REMOVED')
+     RETURNING id
   `;
+  if (updated.length === 0) {
+    return NextResponse.json(
+      { error: 'This listing has been removed and can no longer be edited.', code: 'listing_removed' },
+      { status: 409 },
+    );
+  }
   return NextResponse.json({ ok: true });
+}
+
+async function farmerIsSuspended(farmerId: string): Promise<boolean> {
+  const [row] = await sql<{ status: string }>`SELECT status FROM farmers WHERE id = ${farmerId}`;
+  return row?.status === 'SUSPENDED';
+}
+
+function suspended() {
+  return NextResponse.json(
+    { error: 'Your farm account is suspended.', code: 'farmer_suspended' },
+    { status: 403 },
+  );
 }

@@ -30,6 +30,7 @@ export default async function FarmerOrdersPage() {
       JOIN listings l ON l.id = o.listing_id
      WHERE f.user_id = ${session.id}
      ORDER BY o.created_at DESC
+     LIMIT 100 -- ponytail: newest 100; add pagination when accounts outgrow it
   `;
 
   return (

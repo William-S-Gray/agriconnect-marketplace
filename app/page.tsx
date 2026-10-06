@@ -37,7 +37,7 @@ export default async function HomePage() {
     SELECT l.id, l.title, l.price_per_unit, l.quantity_unit, l.province, f.farm_name
       FROM listings l
       JOIN farmers f ON f.id = l.farmer_id
-     WHERE l.status = 'ACTIVE'
+     WHERE l.status = 'ACTIVE' AND l.is_available AND f.status <> 'SUSPENDED'
      ORDER BY l.created_at DESC
      LIMIT 4
   `;

@@ -145,3 +145,16 @@ export function isTerminal(status: OrderStatus): boolean {
     && availableActions(status, 'buyer').length === 0
     && availableActions(status, 'farmer').length === 0;
 }
+
+/**
+ * Order references: 40 random bits. The old 5-digit number had a 50% chance of
+ * a UNIQUE collision after ~350 orders a year, and a collision aborted the
+ * buyer's whole checkout.
+ */
+export function newOrderReference(now = new Date()): string {
+  // Web Crypto, not node:crypto: client components import this module too.
+  const hex = Array.from(crypto.getRandomValues(new Uint8Array(5)), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('');
+  return `AG-${now.getFullYear()}-${hex.toUpperCase()}`;
+}

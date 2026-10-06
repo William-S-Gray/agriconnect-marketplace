@@ -3,13 +3,19 @@
  *
  * Deliberately minimal: it records applied filenames in a schema_migrations
  * table and skips them next run, so it is safe to re-run and safe to point at
- * production. It does not roll back — forward-only migrations are easier to
- * reason about than reversible ones for a schema this small.
+ * production. Forward-only — no down migrations.
+ *
+ * Each file runs in one transaction together with its schema_migrations row,
+ * so a failure halfway leaves nothing behind (Postgres DDL is transactional).
+ * The file is sent whole — the simple query protocol accepts many statements —
+ * rather than split on ';', which broke on any semicolon inside a string or
+ * function body. An advisory lock stops two concurrent runs (two deploys)
+ * from applying the same file twice.
  *
  * Run with:  npm run db:migrate
  * Target a different database by setting DATABASE_URL for the invocation.
  */
-import { sql, query, pool } from '../lib/pool';
+import { sql, pool } from '../lib/pool';
 import { describeError, connectionHint } from '../lib/describe-error';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,17 +27,6 @@ if (!DATABASE_URL) {
 }
 
 const dir = join(process.cwd(), 'migrations');
-
-/** Splits a file into statements, ignoring semicolons inside line comments. */
-function statements(text: string): string[] {
-  return text
-    .split('\n')
-    .filter((line) => !line.trim().startsWith('--'))
-    .join('\n')
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 async function main() {
   await sql`
@@ -55,11 +50,24 @@ async function main() {
       continue;
     }
     console.log(`  apply   ${file}`);
-    for (const stmt of statements(readFileSync(join(dir, file), 'utf8'))) {
-      await query(stmt);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('agriconnect:migrate'))`);
+      // Re-check under the lock: a concurrent run may have just applied it.
+      const done = await client.query('SELECT 1 FROM schema_migrations WHERE filename = $1', [file]);
+      if (done.rowCount === 0) {
+        await client.query(readFileSync(join(dir, file), 'utf8'));
+        await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
+        ran++;
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
     }
-    await sql`INSERT INTO schema_migrations (filename) VALUES (${file})`;
-    ran++;
   }
 
   console.log(ran === 0 ? 'Nothing to apply.' : `Applied ${ran} migration(s).`);

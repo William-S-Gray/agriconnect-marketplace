@@ -1,6 +1,7 @@
 import 'server-only';
 import { headers } from 'next/headers';
 import { sql } from './db';
+import { clientIp } from './rate-limit';
 import {
   checkImpossibleTravel,
   checkCountryHop,
@@ -138,9 +139,9 @@ function requestHeaders(): Headers | null {
  * headers, so it is evidence about a request, not proof about an origin.
  */
 function ipFrom(h: Headers): string | null {
-  const forwarded = h.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0]!.trim();
-  return h.get('x-real-ip') ?? null;
+  // Delegates so the rate limiter and this monitor can never disagree about
+  // which X-Forwarded-For hop is the client.
+  return clientIp(h);
 }
 
 // ─── Recording ────────────────────────────────────────────────────────────────

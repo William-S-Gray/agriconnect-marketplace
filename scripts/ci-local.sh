@@ -53,6 +53,9 @@ if [[ $USE_CONTAINERS -eq 1 ]]; then
   export DATABASE_URL="postgres://${PGUSER}:${PGPASSWORD}@127.0.0.1:${PG_PORT}/agriconnect_test?sslmode=disable"
   export REDIS_URL="redis://127.0.0.1:${REDIS_PORT}"
   export TEST_REDIS_URL="$REDIS_URL"
+  # tests/setup.ts prefers TEST_DATABASE_URL over DATABASE_URL. Pin it too, or
+  # a TEST_DATABASE_URL in .env.local would send the suite somewhere else.
+  export TEST_DATABASE_URL="$DATABASE_URL"
 
   # .env.local is still loaded by the db: scripts, and an exported value beats
   # anything in that file. DB_PINNED_HOST_IP is the one that matters: it pins
@@ -77,12 +80,19 @@ if [[ $USE_CONTAINERS -eq 1 ]]; then
   echo ' ready'
 fi
 
+# Matches CI: checkout records simulated escrow only when this is set.
+export SIMULATED_PAYMENTS=true
+
 step "Applying migrations";  npm run db:migrate --silent || fail "migrations"
 step "Seeding fixtures";     npm run db:seed --silent    || fail "seed"
 step "Typecheck";            npm run typecheck           || fail "typecheck"
 step "Lint";                 npm run lint                || fail "lint"
 step "Test";                 npm run test                || fail "tests"
 step "Build";                npm run build               || fail "build"
+# Report-only, as in CI, until the Next 15 upgrade (next@14 has advisories with
+# no 14.x fix, so a blocking audit would fail every run).
+step "Audit runtime dependencies (report-only)"
+npm audit --omit=dev --audit-level=high || echo "  audit reported issues (not blocking yet)"
 
 step "Scanning tracked files for credentials"
 # Mirrors the secrets job in ci.yml. Kept in sync by hand; if that job changes,

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import { Providers } from './providers';
 import { DemoModeBanner } from '@/components/DemoModeBanner';
@@ -46,8 +47,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/*
           Applies the saved theme before first paint. Inline by necessity: any
           external script would run after the first paint and cause a flash.
+          Reading the nonce makes every page dynamic, which is required anyway:
+          a prerendered page would carry no nonce and fail the CSP.
         */}
         <script
+          nonce={headers().get('x-nonce') ?? undefined}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})();`,
           }}

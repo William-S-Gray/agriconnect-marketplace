@@ -14,7 +14,7 @@ const suite = redisUrl ? describe : describe.skip;
 
 process.env.REDIS_URL = redisUrl ?? '';
 
-const { checkRateLimit, recordAttempt, clearAttempts } = await import('@/lib/rate-limit');
+const { checkRateLimit, recordAttempt, clearAttempts, chargeAttempt } = await import('@/lib/rate-limit');
 const { getRedis } = await import('@/lib/redis');
 const { sql, pool } = await import('@/lib/pool');
 
@@ -91,5 +91,12 @@ suite('rate limiting with Redis configured', () => {
       await recordAttempt('login', { identifier: email, succeeded: true });
     }
     expect((await checkRateLimit('login', { identifier: email })).limited).toBe(false);
+  });
+
+  it('bounds a concurrent burst through the Redis store too (F-007)', async () => {
+    const burst = await Promise.all(
+      Array.from({ length: 30 }, () => chargeAttempt('login', { identifier: email })),
+    );
+    expect(burst.filter((r) => !r.limited).length).toBeLessThanOrEqual(6);
   });
 });

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql, pool } from '@/lib/db';
 import { requireUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { logError } from '@/lib/log';
 import {
   checkReviewEligibility,
   RECALCULATE_FARMER_RATING,
@@ -125,8 +126,9 @@ export async function POST(
       farmerRating: Number(farmer?.rating ?? 0),
       farmerReviews: farmer?.total_reviews ?? 0,
     });
-  } catch {
+  } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
+    logError('review_failed', error, { orderId: order.id });
     return NextResponse.json(
       { error: 'Could not save your review. Please try again.', code: 'review_failed' },
       { status: 500 },

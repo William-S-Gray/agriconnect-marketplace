@@ -21,8 +21,11 @@ export default async function AdminPage() {
     gmv: string; revenue: string; users: string; farmers: string;
     verified: string; pending: string; listings: string; orders: string; disputes: string;
   }>`
-    SELECT COALESCE((SELECT SUM(total_amount) FROM orders), 0)  AS gmv,
-           COALESCE((SELECT SUM(platform_fee) FROM orders), 0)  AS revenue,
+    -- Cancelled and refunded orders moved no money, so they are not GMV.
+    SELECT COALESCE((SELECT SUM(total_amount) FROM orders
+                      WHERE status NOT IN ('CANCELLED', 'REFUNDED')), 0) AS gmv,
+           COALESCE((SELECT SUM(platform_fee) FROM orders
+                      WHERE status NOT IN ('CANCELLED', 'REFUNDED')), 0) AS revenue,
            (SELECT count(*) FROM users)                          AS users,
            (SELECT count(*) FROM farmers)                        AS farmers,
            (SELECT count(*) FROM farmers WHERE status='VERIFIED') AS verified,
@@ -42,6 +45,7 @@ export default async function AdminPage() {
            f.total_sales, u.email
       FROM farmers f JOIN users u ON u.id = f.user_id
      ORDER BY (f.status = 'PENDING') DESC, f.name
+     LIMIT 200
   `;
 
   const orders = await sql<{
@@ -66,6 +70,7 @@ export default async function AdminPage() {
            o.reference, o.total_amount AS amount
       FROM disputes d JOIN orders o ON o.id = d.order_id
      ORDER BY d.created_at DESC
+     LIMIT 100
   `;
 
   const prices = await sql<{
@@ -80,6 +85,8 @@ export default async function AdminPage() {
            count(*)                             AS orders,
            COALESCE(SUM(total_amount), 0)       AS gmv
       FROM orders
+     -- "Weekly" means the last seven days, not every order ever, by weekday.
+     WHERE created_at > now() - interval '7 days'
      GROUP BY to_char(created_at, 'Dy'), date_part('dow', created_at)
      ORDER BY date_part('dow', created_at)
   `;

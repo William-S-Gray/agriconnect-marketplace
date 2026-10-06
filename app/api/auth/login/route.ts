@@ -4,8 +4,8 @@ import { sql, type UserRow } from '@/lib/db';
 import { verifyPassword, fakeVerify } from '@/lib/password';
 import { createSession } from '@/lib/session';
 import {
-  checkRateLimit,
-  recordAttempt,
+  chargeAttempt,
+  settleAttempt,
   clearAttempts,
   tooManyRequests,
   clientIp,
@@ -48,9 +48,10 @@ export async function POST(request: Request) {
   }
   const { email, password } = parsed.data;
 
-  // Rate limit before doing any expensive work.
-  const limit = await checkRateLimit('login', { identifier: email, ip });
-  if (limit.limited) return tooManyRequests(limit.retryAfterSeconds);
+  // Charged before any expensive work, and before the outcome is known, so
+  // concurrent guesses count against each other (see chargeAttempt).
+  const charge = await chargeAttempt('login', { identifier: email, ip });
+  if (charge.limited) return tooManyRequests(charge.retryAfterSeconds);
 
   const rows = (await sql`
     SELECT id, email, password_hash, role, status, mfa_enabled, session_epoch
@@ -63,27 +64,23 @@ export async function POST(request: Request) {
 
   // Same generic failure for "no such account" and "wrong password", and
   // comparable timing via fakeVerify, so login cannot enumerate accounts.
+  // A failed attempt is already counted by the charge.
   if (!user) {
     await fakeVerify(password);
-    await recordAttempt('login', { identifier: email, ip, succeeded: false });
     return invalidCredentials();
   }
 
   const passwordOk = await verifyPassword(user.password_hash, password);
-  if (!passwordOk) {
-    await recordAttempt('login', { identifier: email, ip, succeeded: false });
-    return invalidCredentials();
-  }
+  if (!passwordOk) return invalidCredentials();
 
   if (user.status === 'SUSPENDED') {
-    await recordAttempt('login', { identifier: email, ip, succeeded: false });
     return NextResponse.json(
       { error: 'This account is not available.', code: 'account_unavailable' },
       { status: 403 },
     );
   }
 
-  await recordAttempt('login', { identifier: email, ip, succeeded: true });
+  await settleAttempt(charge.ticket, true);
   await clearAttempts('login', email);
 
   // Users with MFA get a half-authenticated session until they pass the TOTP

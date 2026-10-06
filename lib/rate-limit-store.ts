@@ -30,8 +30,11 @@ export interface RateLimitStore {
   readonly name: 'redis' | 'postgres';
   /** Records one failed attempt against a key. */
   recordFailure(key: string, at: Date, windowSeconds: number): Promise<void>;
-  /** Failure count and most recent failure inside the window. */
-  stats(key: string, windowSeconds: number): Promise<FailureStats>;
+  /**
+   * Failure count and most recent failure inside the window. `exclude` leaves
+   * out the caller's own pending charge (an audit row id, or a Redis member).
+   */
+  stats(key: string, windowSeconds: number, exclude?: string): Promise<FailureStats>;
   /** Forgets a key's history, e.g. after a successful login. */
   clear(key: string): Promise<void>;
 }
@@ -67,6 +70,49 @@ export class RedisRateLimitStore implements RateLimitStore {
       .zadd(redisKey, now, `${now}-${Math.random().toString(36).slice(2, 10)}`)
       .expire(redisKey, windowSeconds + 60)
       .exec();
+  }
+
+  /**
+   * Adds a pending attempt and reads the stats of everything else in one
+   * transaction, so concurrent attempts each see the others' charges.
+   */
+  async charge(
+    key: string,
+    at: Date,
+    windowSeconds: number,
+  ): Promise<{ member: string; stats: FailureStats }> {
+    const redisKey = this.k(key);
+    const now = at.getTime();
+    const member = `${now}-${Math.random().toString(36).slice(2, 10)}`;
+
+    const result = await this.redis
+      .multi()
+      .zremrangebyscore(redisKey, 0, now - windowSeconds * 1000)
+      .zadd(redisKey, now, member)
+      .expire(redisKey, windowSeconds + 60)
+      .zcard(redisKey)
+      // Top two: if the newest is our own member, the other is the answer.
+      .zrevrange(redisKey, 0, 1, 'WITHSCORES')
+      .exec();
+    if (!result || result.some(([err]) => err)) throw new Error('redis charge failed');
+
+    const total = Number(result[3]![1]);
+    const top = result[4]![1] as string[];
+    let lastScore = NaN;
+    for (let i = 0; i + 1 < top.length; i += 2) {
+      if (top[i] !== member) { lastScore = Number(top[i + 1]); break; }
+    }
+    return {
+      member,
+      stats: {
+        failures: Math.max(0, total - 1),
+        lastFailureAt: Number.isFinite(lastScore) ? new Date(lastScore) : null,
+      },
+    };
+  }
+
+  async uncharge(key: string, member: string): Promise<void> {
+    await this.redis.zrem(this.k(key), member);
   }
 
   async stats(key: string, windowSeconds: number): Promise<FailureStats> {
@@ -142,8 +188,10 @@ export class PostgresRateLimitStore implements RateLimitStore {
     }
   }
 
-  async stats(key: string, windowSeconds: number): Promise<FailureStats> {
+  async stats(key: string, windowSeconds: number, exclude?: string): Promise<FailureStats> {
     const { kind, column, value } = this.parse(key);
+    // bigserial ids are never 0, so 0 excludes nothing.
+    const excludeId = exclude ?? '0';
 
     const rows =
       column === 'identifier'
@@ -153,6 +201,7 @@ export class PostgresRateLimitStore implements RateLimitStore {
              WHERE kind = ${kind}::auth_attempt_kind
                AND identifier = ${value}
                AND succeeded = FALSE
+               AND id <> ${excludeId}::bigint
                AND created_at > now() - make_interval(secs => ${windowSeconds})
           `
         : await this.sql<{ failures: number; last_failure_at: string | null }>`
@@ -161,6 +210,7 @@ export class PostgresRateLimitStore implements RateLimitStore {
              WHERE kind = ${kind}::auth_attempt_kind
                AND ip = ${value}
                AND succeeded = FALSE
+               AND id <> ${excludeId}::bigint
                AND created_at > now() - make_interval(secs => ${windowSeconds})
           `;
 

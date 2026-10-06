@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql, pool } from '@/lib/db';
 import { requireUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { logError } from '@/lib/log';
 import {
   checkTransition,
   availableActions,
@@ -222,8 +223,9 @@ export async function PATCH(
       paymentStatus: t.payment ?? order.payment_status,
       availableActions: availableActions(t.to, party),
     });
-  } catch {
+  } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
+    logError('order_update_failed', error, { orderId: order.id, action: parsed.data.action });
     // The driver error is swallowed: it can carry connection details.
     return NextResponse.json(
       { error: 'Could not update the order. Please try again.', code: 'update_failed' },

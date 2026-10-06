@@ -26,7 +26,7 @@ export default async function FarmerProfilePage({ params }: { params: { id: stri
   }>`
     SELECT id, name, farm_name, province, district, status, rating,
            total_reviews, total_sales, farm_size_ha, profile_photo
-      FROM farmers WHERE id = ${params.id} LIMIT 1
+      FROM farmers WHERE id = ${params.id} AND status <> 'SUSPENDED' LIMIT 1
   `;
   const farmer = farmers[0];
   if (!farmer) notFound();
@@ -40,6 +40,7 @@ export default async function FarmerProfilePage({ params }: { params: { id: stri
       FROM listings l
      WHERE l.farmer_id = ${params.id} AND l.status = 'ACTIVE'
      ORDER BY l.created_at DESC
+     LIMIT 60
   `;
 
   const reviews = await sql<{ rating: number; comment: string; created_at: Date; buyer_name: string }>`

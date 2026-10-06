@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { env } from '@/lib/env';
+import { logError } from '@/lib/log';
 import { sql, pool } from '@/lib/db';
 import { requireRole, buyerIdForUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { PLATFORM_FEE_PERCENT } from '@/lib/mock-data';
+import { newOrderReference } from '@/lib/order-lifecycle';
 
 export const runtime = 'nodejs';
 
@@ -24,6 +27,16 @@ const schema = z.object({
 export async function POST(request: Request) {
   const csrf = verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
+
+  // No payment provider is integrated. Recording an order as HELD_ESCROW means
+  // telling the farmer "the money is held, ship it" — that is only acceptable
+  // in an explicitly simulated deployment.
+  if (!env.SIMULATED_PAYMENTS) {
+    return NextResponse.json(
+      { error: 'Payments are not available yet.', code: 'payments_unavailable' },
+      { status: 503 },
+    );
+  }
 
   const auth = await requireRole('buyer');
   if (!auth.ok) return auth.response;
@@ -47,9 +60,11 @@ export async function POST(request: Request) {
 
     // Lock the listings so two concurrent checkouts cannot oversell stock.
     const { rows: items } = await client.query(
-      `SELECT c.listing_id, c.quantity, l.price_per_unit, l.quantity_kg, l.farmer_id, l.status
+      `SELECT c.listing_id, c.quantity, l.price_per_unit, l.quantity_kg, l.farmer_id, l.status,
+              l.is_available, f.status AS farmer_status
          FROM cart_items c
          JOIN listings l ON l.id = c.listing_id
+         JOIN farmers  f ON f.id = l.farmer_id
         WHERE c.buyer_id = $1
         FOR UPDATE OF l`,
       [buyerId],
@@ -65,7 +80,8 @@ export async function POST(request: Request) {
       const quantity = Number(item.quantity);
       const available = Number(item.quantity_kg);
 
-      if (item.status !== 'ACTIVE' || quantity > available) {
+      if (item.status !== 'ACTIVE' || !item.is_available
+          || item.farmer_status === 'SUSPENDED' || quantity > available) {
         await client.query('ROLLBACK');
         return NextResponse.json(
           { error: 'A listing in your cart is no longer available.', code: 'unavailable' },
@@ -77,7 +93,7 @@ export async function POST(request: Request) {
       const total = +(quantity * unitPrice).toFixed(2);
       const fee = +((total * PLATFORM_FEE_PERCENT) / 100).toFixed(2);
       const payout = +(total - fee).toFixed(2);
-      const reference = `AG-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
+      const reference = newOrderReference();
 
       await client.query(
         `INSERT INTO orders
@@ -105,10 +121,11 @@ export async function POST(request: Request) {
     await client.query('COMMIT');
 
     return NextResponse.json({ ok: true, references });
-  } catch {
+  } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
-    // The driver error is swallowed deliberately: it can carry connection
-    // details, which must not reach the client.
+    // The driver error never reaches the client (it can carry connection
+    // details); it is logged redacted instead of being swallowed.
+    logError('checkout_failed', error, { buyerId });
     return NextResponse.json(
       { error: 'Checkout failed. Please try again.', code: 'checkout_failed' },
       { status: 500 },

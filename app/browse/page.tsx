@@ -36,6 +36,7 @@ export default async function BrowsePage({
       JOIN farmers f ON f.id = l.farmer_id
      WHERE l.status = 'ACTIVE'
        AND l.is_available = TRUE
+       AND f.status <> 'SUSPENDED'
        AND (${q}::text IS NULL OR l.title ILIKE '%' || ${q} || '%' OR l.produce_type ILIKE '%' || ${q} || '%')
        AND (${province}::text IS NULL OR l.province = ${province})
        AND (${category}::text IS NULL OR l.category = ${category})

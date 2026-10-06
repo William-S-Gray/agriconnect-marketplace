@@ -72,8 +72,10 @@ export async function POST(request: Request) {
   // Price and stock come from the listing row, never from the client — a
   // tampered price in the request body has nowhere to land.
   const listing = await sql<{ quantity_kg: string; min_order_qty: string; status: string }>`
-    SELECT quantity_kg, min_order_qty, status FROM listings
-     WHERE id = ${parsed.data.listingId} AND is_available = TRUE
+    SELECT l.quantity_kg, l.min_order_qty, l.status FROM listings l
+      JOIN farmers f ON f.id = l.farmer_id
+     WHERE l.id = ${parsed.data.listingId} AND l.is_available = TRUE
+       AND f.status <> 'SUSPENDED'
      LIMIT 1
   `;
   const row = listing[0];

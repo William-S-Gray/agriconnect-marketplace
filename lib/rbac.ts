@@ -64,12 +64,34 @@ function mfaRequired(): Fail {
   };
 }
 
-/** 401 when there is no valid session. */
-export async function requireUser(): Promise<Ok | Fail> {
+function mfaEnrolmentRequired(): Fail {
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { error: 'Enrol two-factor authentication to continue.', code: 'mfa_enrolment_required' },
+      { status: 403 },
+    ),
+  };
+}
+
+/**
+ * 401 when there is no valid session.
+ *
+ * An admin without an enrolled second factor is refused here, at the one place
+ * every admin action passes through (requireRole, requireAdmin, and handlers
+ * like orders that resolve the admin party themselves). Only the enrolment
+ * endpoints opt out, so the admin can still set MFA up.
+ */
+export async function requireUser(
+  opts: { allowUnenrolledAdmin?: boolean } = {},
+): Promise<Ok | Fail> {
   const user = await getSession();
   if (!user) return unauthorized();
   // A session that has not cleared MFA is not fully authenticated.
   if (user.mfaEnabled && !user.mfaSatisfied) return mfaRequired();
+  if (user.role === 'admin' && !user.mfaEnabled && !opts.allowUnenrolledAdmin) {
+    return mfaEnrolmentRequired();
+  }
   return { ok: true, user };
 }
 
@@ -89,11 +111,7 @@ export async function requireRole(
   return auth;
 }
 
-/**
- * Admin operations additionally require MFA to have been satisfied, even if the
- * account has not enabled it globally — highest-privilege actions get the
- * strictest gate available.
- */
+/** Admin routes. The MFA-enrolment requirement is enforced in requireUser. */
 export async function requireAdmin(): Promise<Ok | Fail> {
   return requireRole('admin');
 }

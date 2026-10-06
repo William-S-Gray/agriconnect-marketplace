@@ -23,7 +23,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const ip = clientIp(request.headers);

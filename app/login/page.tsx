@@ -11,10 +11,11 @@ export const dynamic = 'force-dynamic';
  * the form is ever rendered.
  */
 export default async function LoginPage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { next?: string };
+  searchParams: Promise<{ next?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const session = await optionalPageUser();
   if (session) redirect(homeForRole(session.role));
 

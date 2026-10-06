@@ -29,9 +29,10 @@ const schema = z.object({
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
-  const csrf = verifyOrigin('POST');
+  const params = await props.params;
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) {

@@ -122,9 +122,9 @@ export function countryFromHeaders(h: Headers): string | null {
   return h.get(GEO_HEADERS[proxy].country);
 }
 
-function requestHeaders(): Headers | null {
+async function requestHeaders(): Promise<Headers | null> {
   try {
-    return headers();
+    return await headers();
   } catch {
     // Outside a request scope (a script, a background job).
     return null;
@@ -280,7 +280,7 @@ export async function observeSessionLocation(
   previous: LastSighting,
 ): Promise<AnomalyAction | null> {
   try {
-    const h = requestHeaders();
+    const h = await requestHeaders();
     if (!h) return null;
 
     const ip = ipFrom(h);
@@ -409,7 +409,7 @@ export async function observeDataAccess(
     });
     if (!anomaly) return null;
 
-    const h = requestHeaders();
+    const h = await requestHeaders();
     return await report(userId, sessionId, anomaly, h ? ipFrom(h) : null);
   } catch (error) {
     return swallow('observeDataAccess', error);
@@ -449,7 +449,7 @@ export async function observeDenial(
     });
     if (!anomaly) return null;
 
-    const h = requestHeaders();
+    const h = await requestHeaders();
     return await report(userId, sessionId, anomaly, h ? ipFrom(h) : null);
   } catch (error) {
     return swallow('observeDenial', error);
@@ -478,7 +478,7 @@ export async function observePrivilegedFields(
     });
     if (!anomaly) return null;
 
-    const h = requestHeaders();
+    const h = await requestHeaders();
     return await report(userId, sessionId, anomaly, h ? ipFrom(h) : null);
   } catch (error) {
     return swallow('observePrivilegedFields', error);

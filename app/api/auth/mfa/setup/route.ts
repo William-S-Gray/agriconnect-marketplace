@@ -40,7 +40,7 @@ function alreadyEnabled() {
 }
 
 export async function POST() {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireUser({ allowUnenrolledAdmin: true });
@@ -59,7 +59,7 @@ export async function POST() {
 const confirmSchema = z.object({ code: z.string().trim().min(6).max(8) });
 
 export async function PUT(request: Request) {
-  const csrf = verifyOrigin('PUT');
+  const csrf = await verifyOrigin('PUT');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireUser({ allowUnenrolledAdmin: true });
@@ -105,7 +105,7 @@ export async function PUT(request: Request) {
 const disableSchema = z.object({ password: z.string().min(1).max(128) });
 
 export async function DELETE(request: Request) {
-  const csrf = verifyOrigin('DELETE');
+  const csrf = await verifyOrigin('DELETE');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireUser();

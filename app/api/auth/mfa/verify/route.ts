@@ -27,7 +27,7 @@ const schema = z.object({
  * account and per IP, and a TOTP code cannot be replayed within its time step.
  */
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const session = await getSession();

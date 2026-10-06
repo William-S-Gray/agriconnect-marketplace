@@ -18,7 +18,7 @@ export const runtime = 'nodejs';
 const schema = z.object({ eventId: z.string().uuid() });
 
 export async function PATCH(request: Request) {
-  const csrf = verifyOrigin('PATCH');
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireAdmin();

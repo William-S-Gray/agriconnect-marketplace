@@ -54,7 +54,7 @@ const addSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const ctx = await buyerContext();
@@ -110,7 +110,7 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  const csrf = verifyOrigin('PATCH');
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   const ctx = await buyerContext();
@@ -145,7 +145,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const csrf = verifyOrigin('DELETE');
+  const csrf = await verifyOrigin('DELETE');
   if (!csrf.ok) return csrfFailure();
 
   const ctx = await buyerContext();

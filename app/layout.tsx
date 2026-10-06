@@ -40,7 +40,7 @@ export const viewport: Viewport = {
   themeColor: '#2D6C50',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           a prerendered page would carry no nonce and fail the CSP.
         */}
         <script
-          nonce={headers().get('x-nonce') ?? undefined}
+          nonce={(await headers()).get('x-nonce') ?? undefined}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})();`,
           }}

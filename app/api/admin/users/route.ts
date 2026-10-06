@@ -50,7 +50,7 @@ const patchSchema = z.object({
  * is no request an attacker can craft that grants it.
  */
 export async function PATCH(request: Request) {
-  const csrf = verifyOrigin('PATCH');
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireAdmin();

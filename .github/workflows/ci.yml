@@ -98,12 +98,9 @@ jobs:
         run: npm ci
 
       # Runtime dependencies only: dev-tool advisories rarely reach users and
-      # would make CI flap. REPORT-ONLY until the Next 15 upgrade: next@14 has
-      # advisories with no 14.x patch, so a blocking gate would fail every run.
-      # Remove continue-on-error in the upgrade PR.
+      # would make CI flap. High and above fails the build.
       - name: Audit runtime dependencies
         run: npm audit --omit=dev --audit-level=high
-        continue-on-error: true
 
       # Runs before typecheck so a schema mistake fails with a clear message
       # rather than as a confusing type error against a missing table.

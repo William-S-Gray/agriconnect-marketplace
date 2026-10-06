@@ -89,10 +89,8 @@ step "Typecheck";            npm run typecheck           || fail "typecheck"
 step "Lint";                 npm run lint                || fail "lint"
 step "Test";                 npm run test                || fail "tests"
 step "Build";                npm run build               || fail "build"
-# Report-only, as in CI, until the Next 15 upgrade (next@14 has advisories with
-# no 14.x fix, so a blocking audit would fail every run).
-step "Audit runtime dependencies (report-only)"
-npm audit --omit=dev --audit-level=high || echo "  audit reported issues (not blocking yet)"
+step "Audit runtime dependencies"
+npm audit --omit=dev --audit-level=high || fail "dependency audit"
 
 step "Scanning tracked files for credentials"
 # Mirrors the secrets job in ci.yml. Kept in sync by hand; if that job changes,

@@ -25,7 +25,7 @@ const schema = z.object({
  * matching stock decrement.
  */
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   // No payment provider is integrated. Recording an order as HELD_ESCROW means

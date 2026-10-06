@@ -34,16 +34,16 @@ export interface CsrfResult {
  * Verifies the request originates from this site. Call at the top of every
  * mutating route handler.
  */
-export function verifyOrigin(method: string): CsrfResult {
+export async function verifyOrigin(method: string): Promise<CsrfResult> {
   if (SAFE_METHODS.has(method.toUpperCase())) return { ok: true };
 
-  const h = headers();
+  const h = await headers();
   const origin = h.get('origin');
   const referer = h.get('referer');
 
   // Same-origin fetch always sends Origin for mutating requests.
   if (origin) {
-    return isAllowed(origin)
+    return isAllowed(origin, h)
       ? { ok: true }
       : { ok: false, reason: 'origin_mismatch' };
   }
@@ -51,7 +51,7 @@ export function verifyOrigin(method: string): CsrfResult {
   // Fall back to Referer when Origin is absent.
   if (referer) {
     try {
-      return isAllowed(new URL(referer).origin)
+      return isAllowed(new URL(referer).origin, h)
         ? { ok: true }
         : { ok: false, reason: 'referer_mismatch' };
     } catch {
@@ -63,7 +63,7 @@ export function verifyOrigin(method: string): CsrfResult {
   return { ok: false, reason: 'origin_missing' };
 }
 
-function isAllowed(origin: string): boolean {
+function isAllowed(origin: string, h: Headers): boolean {
   const allowed = new Set<string>([env.APP_URL]);
   if (!env.isProduction) {
     allowed.add('http://localhost:3000');
@@ -71,7 +71,7 @@ function isAllowed(origin: string): boolean {
   }
   // Also accept the request's own host, so preview deployments work without
   // reconfiguring APP_URL for every generated hostname.
-  const host = headers().get('host');
+  const host = h.get('host');
   if (host) {
     allowed.add(`https://${host}`);
     if (!env.isProduction) allowed.add(`http://${host}`);

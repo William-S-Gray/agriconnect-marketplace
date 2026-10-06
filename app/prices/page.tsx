@@ -9,10 +9,11 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Market Prices — AgriConnect' };
 
 export default async function MarketPricesPage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { province?: string; category?: string };
+  searchParams: Promise<{ province?: string; category?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const province = searchParams.province && searchParams.province !== 'all' ? searchParams.province : null;
   const category = searchParams.category && searchParams.category !== 'all' ? searchParams.category : null;
 

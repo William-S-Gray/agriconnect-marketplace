@@ -91,7 +91,7 @@ export async function createSession(
        ${opts.ip ?? null}, ${opts.userAgent ?? null})
   `;
 
-  cookies().set(
+  (await cookies()).set(
     sessionCookieName(),
     token,
     cookieOptions(new Date(now + ABSOLUTE_TTL_MS)),
@@ -107,7 +107,7 @@ export async function createSession(
  * immediately and a client can never influence it.
  */
 export async function getSession(): Promise<SessionUser | null> {
-  const token = cookies().get(sessionCookieName())?.value;
+  const token = (await cookies()).get(sessionCookieName())?.value;
   if (!token) return null;
 
   const presentedHash = hashToken(token);
@@ -238,7 +238,7 @@ async function touchSession(s: {
   // the cookie first means a read-only context fails before anything is
   // persisted.
   try {
-    cookies().set(sessionCookieName(), rotated, cookieOptions(s.absoluteExpiresAt));
+    (await cookies()).set(sessionCookieName(), rotated, cookieOptions(s.absoluteExpiresAt));
   } catch {
     // Read-only context (a page render). Slide the idle window so the session
     // stays alive, but leave rotated_at untouched: rotation stays owed, and the
@@ -265,7 +265,7 @@ async function touchSession(s: {
   if (won.length === 0) {
     // Lost the race: another request already rotated. Give the browser back
     // the token it sent, still honoured during the grace period.
-    cookies().set(sessionCookieName(), s.presentedToken, cookieOptions(s.absoluteExpiresAt));
+    (await cookies()).set(sessionCookieName(), s.presentedToken, cookieOptions(s.absoluteExpiresAt));
   }
 }
 
@@ -311,7 +311,7 @@ export async function invalidateAllSessions(userId: string): Promise<void> {
 
 /** Server-side logout: revoke the row, then clear the cookie. */
 export async function destroySession(): Promise<void> {
-  const token = cookies().get(sessionCookieName())?.value;
+  const token = (await cookies()).get(sessionCookieName())?.value;
   if (token) {
     await sql`
       UPDATE sessions SET revoked_at = now()
@@ -319,7 +319,7 @@ export async function destroySession(): Promise<void> {
          AND revoked_at IS NULL
     `;
   }
-  cookies().set(sessionCookieName(), '', {
+  (await cookies()).set(sessionCookieName(), '', {
     ...cookieOptions(new Date(0)),
     maxAge: 0,
   });

@@ -16,7 +16,8 @@ export const dynamic = 'force-dynamic';
  * their email, password hash and MFA secret — is never joined in, so no amount
  * of client inspection reveals contact details that are not meant to be public.
  */
-export default async function FarmerProfilePage({ params }: { params: { id: string } }) {
+export default async function FarmerProfilePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound();
 
   const farmers = await sql<{

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Leaf } from 'lucide-react';
-import { optionalPageUser, homeForRole } from '@/lib/page-guard';
+import { optionalPageUser, homeForRole, safeNextPath } from '@/lib/page-guard';
 import { LoginForm } from './login-form';
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,11 @@ export const dynamic = 'force-dynamic';
  * the form is ever rendered.
  */
 export default async function LoginPage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { next?: string };
+  searchParams: Promise<{ next?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const session = await optionalPageUser();
   if (session) redirect(homeForRole(session.role));
 
@@ -24,7 +25,7 @@ export default async function LoginPage({
         <Leaf className="h-7 w-7 text-primary" />
         <span className="font-heading text-2xl font-bold text-foreground">AgriConnect</span>
       </Link>
-      <LoginForm nextPath={searchParams.next} />
+      <LoginForm nextPath={safeNextPath(searchParams.next)} />
     </main>
   );
 }

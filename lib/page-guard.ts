@@ -48,7 +48,30 @@ export async function requirePageRole(
   if (!allowed.includes(session.role)) {
     redirect(homeForRole(session.role));
   }
+  // Admin pages need an enrolled second factor; see requireAdmin in rbac.ts.
+  if (session.role === 'admin' && allowed.includes('admin') && !session.mfaEnabled) {
+    redirect('/settings/security?enrol=required');
+  }
   return session;
+}
+
+/**
+ * Reduces a ?next= value to a same-origin path, or undefined.
+ *
+ * Parsed with the URL constructor rather than a prefix check, because browsers
+ * normalise "/\\evil.com", "/\t/evil.com" and similar into protocol-relative
+ * URLs that a startsWith('/') test happily accepts.
+ */
+export function safeNextPath(next: string | undefined | null): string | undefined {
+  if (!next) return undefined;
+  const base = 'http://agriconnect.invalid';
+  try {
+    const url = new URL(next, base);
+    if (url.origin !== base) return undefined;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return undefined;
+  }
 }
 
 export function homeForRole(role: Role): string {

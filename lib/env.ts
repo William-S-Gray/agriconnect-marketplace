@@ -14,12 +14,21 @@ function required(name: string): string {
   return value;
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const env = {
   DATABASE_URL: required('DATABASE_URL'),
-  SESSION_SECRET: required('SESSION_SECRET'),
   MFA_ENCRYPTION_KEY: required('MFA_ENCRYPTION_KEY'),
-  APP_URL: process.env.APP_URL ?? 'http://localhost:3000',
-  isProduction: process.env.NODE_ENV === 'production',
+  // Reset links and the CSRF allowlist are built from this. Defaulting to
+  // localhost in production silently mailed links nobody could open.
+  APP_URL: isProduction ? required('APP_URL') : (process.env.APP_URL ?? 'http://localhost:3000'),
+  /**
+   * No payment provider is integrated. Checkout only records orders as paid
+   * into escrow when this is explicitly 'true' (the demo); otherwise it
+   * refuses, rather than marking unpaid orders HELD_ESCROW.
+   */
+  SIMULATED_PAYMENTS: process.env.SIMULATED_PAYMENTS === 'true',
+  isProduction,
 };
 
 /**

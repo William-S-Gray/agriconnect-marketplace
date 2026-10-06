@@ -17,8 +17,8 @@ import { env } from './env';
  *     authenticated owner
  *   * MFA is not active until the user proves possession with a valid code
  *
- * Replay: TOTP codes are inherently reusable inside their time step, so each
- * accepted code is recorded and refused a second time for the same user.
+ * Replay: TOTP codes are inherently reusable inside their acceptance window,
+ * so each accepted code is recorded in mfa_used_totp and refused a second time.
  */
 
 const ISSUER = 'AgriConnect';
@@ -30,6 +30,8 @@ const PERIOD_SECONDS = 30;
  * seconds, not steps.
  */
 const EPOCH_TOLERANCE_SECONDS = PERIOD_SECONDS;
+/** Longer than any window in which one code can verify (3 steps). */
+const REPLAY_WINDOW_SECONDS = PERIOD_SECONDS * 4;
 
 // ─── Secret encryption at rest ────────────────────────────────────────────────
 
@@ -78,11 +80,15 @@ export interface EnrolmentChallenge {
 /**
  * Begins enrolment: generates a secret, stores it encrypted, and leaves
  * mfa_enabled FALSE until a code is verified.
+ *
+ * Returns null when MFA is already enabled. Re-enrolling used to overwrite the
+ * live secret and switch MFA off, which let any signed-in session strip the
+ * second factor without the password that DELETE demands.
  */
 export async function beginEnrolment(
   userId: string,
   email: string,
-): Promise<EnrolmentChallenge> {
+): Promise<EnrolmentChallenge | null> {
   const secret = generateSecret({ length: 20 }); // 160-bit, per RFC 4226
   const otpauthUrl = generateURI({
     issuer: ISSUER,
@@ -92,14 +98,15 @@ export async function beginEnrolment(
     period: PERIOD_SECONDS,
   });
 
-  await sql`
+  const updated = await sql`
     UPDATE users
        SET mfa_secret = ${encryptSecret(secret)},
-           mfa_enabled = FALSE,
            mfa_confirmed_at = NULL,
            updated_at = now()
-     WHERE id = ${userId}
+     WHERE id = ${userId} AND mfa_enabled = FALSE
+     RETURNING id
   `;
+  if (updated.length === 0) return null;
 
   return {
     secret,
@@ -109,15 +116,22 @@ export async function beginEnrolment(
 }
 
 /**
- * Completes enrolment. Requires a valid code, so a user cannot lock themselves
- * out with a secret they never actually stored.
+ * Completes a *pending* enrolment. Requires a valid code, so a user cannot lock
+ * themselves out with a secret they never actually stored.
+ *
+ * Refuses when MFA is already enabled: otherwise this was an unthrottled way
+ * to answer the login MFA challenge — and it minted fresh recovery codes for
+ * whoever guessed right.
+ *
+ * Enabling MFA and issuing the recovery codes is one statement, so a failure
+ * cannot leave MFA on with no recovery codes.
  */
 export async function confirmEnrolment(
   userId: string,
   code: string,
 ): Promise<{ ok: boolean; recoveryCodes?: string[] }> {
   const rows = (await sql`
-    SELECT mfa_secret FROM users WHERE id = ${userId} LIMIT 1
+    SELECT mfa_secret FROM users WHERE id = ${userId} AND mfa_enabled = FALSE LIMIT 1
   `) as { mfa_secret: string | null }[];
 
   const encrypted = rows[0]?.mfa_secret;
@@ -126,13 +140,25 @@ export async function confirmEnrolment(
   const secret = decryptSecret(encrypted);
   if (!secret || !verifyTotp(secret, code)) return { ok: false };
 
-  await sql`
-    UPDATE users
-       SET mfa_enabled = TRUE, mfa_confirmed_at = now(), updated_at = now()
-     WHERE id = ${userId}
+  const codes = newRecoveryCodes();
+  const enabled = await sql`
+    WITH u AS (
+      UPDATE users
+         SET mfa_enabled = TRUE, mfa_confirmed_at = now(), updated_at = now()
+       WHERE id = ${userId} AND mfa_enabled = FALSE AND mfa_secret = ${encrypted}
+       RETURNING id
+    ),
+    cleared AS (
+      DELETE FROM mfa_recovery_codes
+       WHERE user_id IN (SELECT id FROM u) AND used_at IS NULL
+    )
+    INSERT INTO mfa_recovery_codes (user_id, code_hash)
+    SELECT u.id, h FROM u, unnest(${codes.map(hashRecoveryCode)}::text[]) AS h
+    RETURNING id
   `;
-
-  return { ok: true, recoveryCodes: await regenerateRecoveryCodes(userId) };
+  // Zero rows: a concurrent request enabled it, or the secret was replaced.
+  if (enabled.length === 0) return { ok: false };
+  return { ok: true, recoveryCodes: codes };
 }
 
 /** Verifies a TOTP code against a decrypted secret. */
@@ -170,21 +196,31 @@ export async function verifyUserTotp(
   const secret = decryptSecret(row.mfa_secret);
   if (!secret || !verifyTotp(secret, code)) return false;
 
-  // Single-use inside the step: reuse of the same code is refused.
-  const stepKey = createHash('sha256')
-    .update(`${userId}:${Math.floor(Date.now() / 30000)}:${code.replace(/\D/g, '')}`)
+  // Single use across the whole acceptance window. The tolerance accepts a code
+  // for up to ~90s (the previous, current and next step), so the marker is
+  // keyed on the code itself, not on the current step — a step-keyed marker
+  // let the same code through again once the clock ticked into the next step.
+  //
+  // One atomic statement: a fresh insert, or reclaiming a marker old enough to
+  // be a genuinely new occurrence of the same six digits, returns a row; a
+  // replay (or a concurrent duplicate) returns none.
+  const codeHash = createHash('sha256')
+    .update(`${userId}:${code.replace(/\D/g, '')}`)
     .digest('hex');
+  const accepted = await sql`
+    INSERT INTO mfa_used_totp (user_id, code_hash, used_at)
+    VALUES (${userId}, ${codeHash}, now())
+    ON CONFLICT (user_id, code_hash) DO UPDATE SET used_at = now()
+      WHERE mfa_used_totp.used_at < now() - make_interval(secs => ${REPLAY_WINDOW_SECONDS})
+    RETURNING 1
+  `;
+  if (accepted.length === 0) return false;
 
-  const replay = (await sql`
-    SELECT 1 FROM mfa_recovery_codes
-     WHERE user_id = ${userId} AND code_hash = ${stepKey} LIMIT 1
-  `) as unknown[];
-  if (replay.length > 0) return false;
-
+  // Opportunistic pruning keeps the table bounded per user.
   await sql`
-    INSERT INTO mfa_recovery_codes (user_id, code_hash, used_at)
-    VALUES (${userId}, ${stepKey}, now())
-    ON CONFLICT (user_id, code_hash) DO NOTHING
+    DELETE FROM mfa_used_totp
+     WHERE user_id = ${userId}
+       AND used_at < now() - make_interval(secs => ${REPLAY_WINDOW_SECONDS})
   `;
   return true;
 }
@@ -197,28 +233,27 @@ function hashRecoveryCode(code: string): string {
     .digest('hex');
 }
 
+function newRecoveryCodes(): string[] {
+  return Array.from({ length: 10 }, () => {
+    const raw = randomBytes(5).toString('hex').toUpperCase(); // 10 hex chars
+    return `${raw.slice(0, 5)}-${raw.slice(5)}`;
+  });
+}
+
 /**
  * Issues ten fresh single-use recovery codes, replacing any unused ones.
- * Returned in plaintext exactly once; only hashes are stored.
+ * Returned in plaintext exactly once; only hashes are stored. One statement,
+ * so the old codes are never deleted without the new ones landing.
  */
 export async function regenerateRecoveryCodes(userId: string): Promise<string[]> {
+  const codes = newRecoveryCodes();
   await sql`
-    DELETE FROM mfa_recovery_codes WHERE user_id = ${userId} AND used_at IS NULL
+    WITH cleared AS (
+      DELETE FROM mfa_recovery_codes WHERE user_id = ${userId} AND used_at IS NULL
+    )
+    INSERT INTO mfa_recovery_codes (user_id, code_hash)
+    SELECT ${userId}::uuid, unnest(${codes.map(hashRecoveryCode)}::text[])
   `;
-
-  const codes: string[] = [];
-  for (let i = 0; i < 10; i++) {
-    const raw = randomBytes(5).toString('hex').toUpperCase(); // 10 hex chars
-    codes.push(`${raw.slice(0, 5)}-${raw.slice(5)}`);
-  }
-
-  for (const code of codes) {
-    await sql`
-      INSERT INTO mfa_recovery_codes (user_id, code_hash)
-      VALUES (${userId}, ${hashRecoveryCode(code)})
-      ON CONFLICT (user_id, code_hash) DO NOTHING
-    `;
-  }
   return codes;
 }
 
@@ -251,4 +286,5 @@ export async function disableMfa(userId: string): Promise<void> {
      WHERE id = ${userId}
   `;
   await sql`DELETE FROM mfa_recovery_codes WHERE user_id = ${userId}`;
+  await sql`DELETE FROM mfa_used_totp WHERE user_id = ${userId}`;
 }

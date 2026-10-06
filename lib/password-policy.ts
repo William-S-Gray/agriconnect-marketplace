@@ -1,22 +1,18 @@
-import { z } from 'zod';
-
-export const passwordPolicy = z
-  .string()
-  .min(8, 'At least 8 characters')
-  .regex(/[A-Z]/, 'Must contain an uppercase letter')
-  .regex(/[a-z]/, 'Must contain a lowercase letter')
-  .regex(/[0-9]/, 'Must contain a number')
-  .regex(/[^A-Za-z0-9]/, 'Must contain a special character (!@#$%^&*)');
-
 export interface PasswordStrength {
   score: number; // 0-4
   label: string;
   color: string;
 }
 
+/**
+ * Live feedback only; lib/password.ts is the authority. Its minimum is 12, so
+ * nothing shorter can score above "Too weak" here — the meter used to call an
+ * 8-character password "Strong" that the server then refused.
+ */
 export function getPasswordStrength(password: string): PasswordStrength {
+  if (password.length < 12) return { score: 0, label: 'Too weak', color: 'bg-destructive' };
   let score = 0;
-  if (password.length >= 8) score++;
+  if (password.length >= 16) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/[a-z]/.test(password) && /[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;

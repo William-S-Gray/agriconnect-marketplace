@@ -48,7 +48,7 @@ const buyerSchema = baseSchema.extend({
 const schema = z.discriminatedUnion('role', [farmerSchema, buyerSchema]);
 
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const ip = clientIp(request.headers);
@@ -90,38 +90,52 @@ export async function POST(request: Request) {
 
   const passwordHash = await hashPassword(data.password);
 
-  // Insert conditionally so a duplicate email does not raise a constraint error
-  // we would then have to interpret.
-  const inserted = (await sql`
-    INSERT INTO users (email, password_hash, role)
-    VALUES (${data.email}, ${passwordHash}, ${data.role}::user_role)
-    ON CONFLICT (email) DO NOTHING
-    RETURNING id, email, role, session_epoch
-  `) as { id: string; email: string; role: 'farmer' | 'buyer'; session_epoch: number }[];
+  // User and profile are inserted in ONE statement, so a failure cannot leave
+  // a user row with no profile — which locked the email out for good, since a
+  // retry hit the duplicate-email branch below.
+  //
+  // ON CONFLICT DO NOTHING: a duplicate email yields no row rather than a
+  // constraint error we would then have to interpret.
+  const inserted = (data.role === 'farmer'
+    ? await sql`
+        WITH u AS (
+          INSERT INTO users (email, password_hash, role)
+          VALUES (${data.email}, ${passwordHash}, 'farmer')
+          ON CONFLICT (email) DO NOTHING
+          RETURNING id, email, role, session_epoch
+        ), p AS (
+          INSERT INTO farmers
+            (user_id, name, farm_name, phone, province, district, ecocash_number, farm_size_ha, status)
+          SELECT id, ${data.name}, ${data.farm_name}, ${data.phone}, ${data.province},
+                 ${data.district ?? ''}, ${data.ecocash_number}, ${data.farm_size_ha ?? null}::numeric, 'PENDING'
+            FROM u
+        )
+        SELECT * FROM u
+      `
+    : await sql`
+        WITH u AS (
+          INSERT INTO users (email, password_hash, role)
+          VALUES (${data.email}, ${passwordHash}, 'buyer')
+          ON CONFLICT (email) DO NOTHING
+          RETURNING id, email, role, session_epoch
+        ), p AS (
+          INSERT INTO buyers (user_id, name, phone, buyer_type, city)
+          SELECT id, ${data.name}, ${data.phone}, ${data.buyer_type}::buyer_type, ${data.city}
+            FROM u
+        )
+        SELECT * FROM u
+      `) as { id: string; email: string; role: 'farmer' | 'buyer'; session_epoch: number }[];
 
   const user = inserted[0];
 
   if (!user) {
-    // Email already registered. Respond exactly as for success so registration
-    // cannot be used to enumerate accounts; the real owner still gets in via
-    // login or password reset.
+    // Email already registered. NOTE: this is distinguishable from a real
+    // signup — success sets a session cookie and this does not — so register
+    // DOES reveal whether an email is registered. Closing that needs an
+    // email-verification step (no mail provider is integrated yet); until
+    // then the per-IP register limit is the only brake on enumeration.
     await recordAttempt('register', { identifier: data.email, ip, succeeded: false });
     return NextResponse.json({ ok: true, created: false });
-  }
-
-  if (data.role === 'farmer') {
-    await sql`
-      INSERT INTO farmers
-        (user_id, name, farm_name, phone, province, district, ecocash_number, farm_size_ha, status)
-      VALUES
-        (${user.id}, ${data.name}, ${data.farm_name}, ${data.phone}, ${data.province},
-         ${data.district ?? ''}, ${data.ecocash_number}, ${data.farm_size_ha ?? null}, 'PENDING')
-    `;
-  } else {
-    await sql`
-      INSERT INTO buyers (user_id, name, phone, buyer_type, city)
-      VALUES (${user.id}, ${data.name}, ${data.phone}, ${data.buyer_type}::buyer_type, ${data.city})
-    `;
   }
 
   await recordAttempt('register', { identifier: data.email, ip, succeeded: true });

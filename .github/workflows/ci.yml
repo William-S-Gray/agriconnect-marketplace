@@ -72,9 +72,9 @@ jobs:
       # Exercises the Redis-backed rate limiter; without it those suites skip.
       TEST_REDIS_URL: redis://127.0.0.1:56380
       # Non-secret values: this database is destroyed with the runner.
-      SESSION_SECRET: ci-session-secret-not-used-outside-ci
       MFA_ENCRYPTION_KEY: ci-mfa-encryption-key-not-used-outside-ci
       APP_URL: http://localhost:3000
+      SIMULATED_PAYMENTS: 'true'
 
     steps:
       # clean: true is the default, but it is load-bearing on a persistent
@@ -96,6 +96,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Runtime dependencies only: dev-tool advisories rarely reach users and
+      # would make CI flap. High and above fails the build.
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       # Runs before typecheck so a schema mistake fails with a clear message
       # rather than as a confusing type error against a missing table.

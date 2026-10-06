@@ -1,19 +1,10 @@
 /**
- * Next.js configuration, including security headers.
+ * Next.js configuration, including the static security headers.
  *
- * CSP notes — this policy was derived from what the app actually loads, not
- * copied from a template:
- *   * 'unsafe-inline' for style-src is required by Tailwind's runtime style
- *     injection and by the inline style attributes Radix/recharts set for
- *     positioning and chart geometry.
- *   * 'unsafe-inline' for script-src is required in development by the Next.js
- *     dev overlay and React refresh. It is dropped in production, where Next
- *     emits nonced/external scripts only.
- *   * data: is allowed for img-src because the TOTP QR code and the farmer
- *     photo preview are data: URIs.
- *   * connect-src includes the Neon HTTPS endpoint, since the serverless driver
- *     talks to the database over fetch from server components — kept explicit
- *     rather than using a wildcard.
+ * The Content-Security-Policy is NOT set here. It needs a fresh nonce per
+ * request, because the App Router streams its payload through inline
+ * <script> tags; a static `script-src 'self'` blocked every one of them and
+ * left production pages without hydration. middleware.ts builds the policy.
  *
  * HSTS is only emitted in production: sending it from a plain-http dev server
  * would pin localhost to HTTPS in the browser and break local development.
@@ -21,24 +12,7 @@
 
 const isProd = process.env.NODE_ENV === 'production';
 
-const csp = [
-  "default-src 'self'",
-  isProd
-    ? "script-src 'self'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.neon.tech",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  ...(isProd ? ['upgrade-insecure-requests'] : []),
-].join('; ');
-
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -61,14 +35,16 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: {
-    /**
-     * Loaded at runtime by Node rather than bundled by webpack.
-     * @node-rs/argon2 ships a native .node binary, and pg pulls in optional
-     * native bindings; webpack cannot parse either.
-     */
-    serverComponentsExternalPackages: ['@node-rs/argon2', 'pg'],
-  },
+  // The only next/image use is a data: URI rendered unoptimized, so the
+  // /_next/image optimizer is pure attack surface here — it has carried
+  // unauthenticated RCE and DoS advisories (e.g. GHSA-2xp9-vwfh-vxw4). Off.
+  images: { unoptimized: true },
+  /**
+   * Loaded at runtime by Node rather than bundled by webpack.
+   * @node-rs/argon2 ships a native .node binary, and pg pulls in optional
+   * native bindings; webpack cannot parse either.
+   */
+  serverExternalPackages: ['@node-rs/argon2', 'pg'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

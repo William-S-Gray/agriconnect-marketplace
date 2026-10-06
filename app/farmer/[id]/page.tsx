@@ -16,7 +16,8 @@ export const dynamic = 'force-dynamic';
  * their email, password hash and MFA secret — is never joined in, so no amount
  * of client inspection reveals contact details that are not meant to be public.
  */
-export default async function FarmerProfilePage({ params }: { params: { id: string } }) {
+export default async function FarmerProfilePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound();
 
   const farmers = await sql<{
@@ -26,7 +27,7 @@ export default async function FarmerProfilePage({ params }: { params: { id: stri
   }>`
     SELECT id, name, farm_name, province, district, status, rating,
            total_reviews, total_sales, farm_size_ha, profile_photo
-      FROM farmers WHERE id = ${params.id} LIMIT 1
+      FROM farmers WHERE id = ${params.id} AND status <> 'SUSPENDED' LIMIT 1
   `;
   const farmer = farmers[0];
   if (!farmer) notFound();
@@ -40,6 +41,7 @@ export default async function FarmerProfilePage({ params }: { params: { id: stri
       FROM listings l
      WHERE l.farmer_id = ${params.id} AND l.status = 'ACTIVE'
      ORDER BY l.created_at DESC
+     LIMIT 60
   `;
 
   const reviews = await sql<{ rating: number; comment: string; created_at: Date; buyer_name: string }>`

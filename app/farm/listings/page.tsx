@@ -26,6 +26,7 @@ export default async function MyListingsPage() {
       FROM listings l JOIN farmers f ON f.id = l.farmer_id
      WHERE f.user_id = ${session.id}
      ORDER BY l.created_at DESC
+     LIMIT 200
   `;
 
   return (

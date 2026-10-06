@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sql, pool } from '@/lib/db';
 import { requireUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { logError } from '@/lib/log';
 import {
   checkReviewEligibility,
   RECALCULATE_FARMER_RATING,
@@ -28,9 +29,10 @@ const schema = z.object({
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
-  const csrf = verifyOrigin('POST');
+  const params = await props.params;
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) {
@@ -125,8 +127,9 @@ export async function POST(
       farmerRating: Number(farmer?.rating ?? 0),
       farmerReviews: farmer?.total_reviews ?? 0,
     });
-  } catch {
+  } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
+    logError('review_failed', error, { orderId: order.id });
     return NextResponse.json(
       { error: 'Could not save your review. Please try again.', code: 'review_failed' },
       { status: 500 },

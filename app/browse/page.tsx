@@ -17,10 +17,11 @@ export const metadata = { title: 'Browse Produce — AgriConnect' };
  * interpolated into the query.
  */
 export default async function BrowsePage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { q?: string; province?: string; category?: string; organic?: string };
+  searchParams: Promise<{ q?: string; province?: string; category?: string; organic?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const q = searchParams.q?.trim() || null;
   const province = searchParams.province && searchParams.province !== 'all' ? searchParams.province : null;
   const category = searchParams.category && searchParams.category !== 'all' ? searchParams.category : null;
@@ -36,6 +37,7 @@ export default async function BrowsePage({
       JOIN farmers f ON f.id = l.farmer_id
      WHERE l.status = 'ACTIVE'
        AND l.is_available = TRUE
+       AND f.status <> 'SUSPENDED'
        AND (${q}::text IS NULL OR l.title ILIKE '%' || ${q} || '%' OR l.produce_type ILIKE '%' || ${q} || '%')
        AND (${province}::text IS NULL OR l.province = ${province})
        AND (${category}::text IS NULL OR l.category = ${category})

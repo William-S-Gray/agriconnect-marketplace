@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { getSession, markMfaSatisfied } from '@/lib/session';
 import { verifyUserTotp, consumeRecoveryCode } from '@/lib/mfa';
 import {
-  checkRateLimit,
-  recordAttempt,
+  chargeAttempt,
+  settleAttempt,
   clearAttempts,
   tooManyRequests,
   clientIp,
@@ -27,7 +27,7 @@ const schema = z.object({
  * account and per IP, and a TOTP code cannot be replayed within its time step.
  */
 export async function POST(request: Request) {
-  const csrf = verifyOrigin('POST');
+  const csrf = await verifyOrigin('POST');
   if (!csrf.ok) return csrfFailure();
 
   const session = await getSession();
@@ -46,8 +46,10 @@ export async function POST(request: Request) {
   if (session.mfaSatisfied) return NextResponse.json({ ok: true });
 
   const ip = clientIp(request.headers);
-  const limit = await checkRateLimit('mfa', { identifier: session.email, ip });
-  if (limit.limited) return tooManyRequests(limit.retryAfterSeconds);
+  // Charge-first: six digits is a small space, so a parallel burst of guesses
+  // must count against itself (see chargeAttempt).
+  const charge = await chargeAttempt('mfa', { identifier: session.email, ip });
+  if (charge.limited) return tooManyRequests(charge.retryAfterSeconds);
 
   let body: unknown;
   try {
@@ -57,22 +59,16 @@ export async function POST(request: Request) {
   }
 
   const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    await recordAttempt('mfa', { identifier: session.email, ip, succeeded: false });
-    return invalidCode();
-  }
+  if (!parsed.success) return invalidCode(); // already charged
 
   const { code, recovery } = parsed.data;
   const ok = recovery
     ? await consumeRecoveryCode(session.id, code)
     : await verifyUserTotp(session.id, code);
 
-  if (!ok) {
-    await recordAttempt('mfa', { identifier: session.email, ip, succeeded: false });
-    return invalidCode();
-  }
+  if (!ok) return invalidCode(); // already charged
 
-  await recordAttempt('mfa', { identifier: session.email, ip, succeeded: true });
+  await settleAttempt(charge.ticket, true);
   await clearAttempts('mfa', session.email);
   await markMfaSatisfied(session.sessionId);
 

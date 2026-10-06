@@ -49,7 +49,8 @@ export default async function BuyerDashboardPage() {
            l.is_available, l.province, l.district, l.delivery_options, l.views_count,
            l.status, l.created_at
       FROM listings l
-     WHERE l.status = 'ACTIVE' AND l.is_available = TRUE
+      JOIN farmers f ON f.id = l.farmer_id
+     WHERE l.status = 'ACTIVE' AND l.is_available = TRUE AND f.status <> 'SUSPENDED'
      ORDER BY l.created_at DESC LIMIT 4
   `;
 

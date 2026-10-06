@@ -51,6 +51,11 @@ function createPool(): Pool {
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 15_000,
+    // Client-side ceiling on any one query. Without it a stuck query held its
+    // pooled connection — and the request — indefinitely. Client-side rather
+    // than statement_timeout, because a startup parameter is not guaranteed to
+    // pass through Neon's pooled (PgBouncer) endpoint.
+    query_timeout: 15_000,
   };
 
   /**

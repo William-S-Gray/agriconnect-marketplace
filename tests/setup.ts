@@ -20,11 +20,14 @@ if (existsSync(envPath)) {
   }
 }
 
+// A dedicated test database wins over the app's: these tests write and delete
+// rows, and must not do it to a database people are using.
+if (process.env.TEST_DATABASE_URL) process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+
 if (!process.env.DATABASE_URL) {
   throw new Error(
     'DATABASE_URL is not set. Integration tests need .env.local (see .env.example).',
   );
 }
 // Deterministic secrets for tests that exercise encryption round-trips.
-process.env.SESSION_SECRET ??= 'test-session-secret-value-000000000000';
 process.env.MFA_ENCRYPTION_KEY ??= 'test-mfa-encryption-key-000000000000';

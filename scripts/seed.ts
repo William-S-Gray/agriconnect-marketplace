@@ -32,6 +32,13 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
+// The seed creates an admin whose password is printed below and committed in
+// this file. It must never run against production.
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+  console.error('Refusing to seed a production environment.');
+  process.exit(1);
+}
+
 /**
  * The shared demo password. Documented publicly on purpose — these are demo
  * accounts. It must satisfy lib/password.ts's policy (>= 12 chars, not a common
@@ -61,13 +68,13 @@ async function upsertUser(
   role: 'farmer' | 'buyer' | 'admin',
   passwordHash: string,
 ): Promise<string> {
+  // An existing account keeps its password and role. Overwriting them meant
+  // that seeding a database with real users reset each matching account —
+  // admin included — to the public demo password.
   const rows = (await sql`
     INSERT INTO users (email, password_hash, role, email_verified_at)
     VALUES (${email.toLowerCase()}, ${passwordHash}, ${role}::user_role, now())
-    ON CONFLICT (email) DO UPDATE
-      SET password_hash = EXCLUDED.password_hash,
-          role          = EXCLUDED.role,
-          updated_at    = now()
+    ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
     RETURNING id
   `) as { id: string }[];
   return rows[0]!.id;

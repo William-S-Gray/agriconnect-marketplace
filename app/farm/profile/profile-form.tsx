@@ -46,6 +46,8 @@ export function ProfileForm({
           province,
           district: form.get('district'),
           ecocash_number: form.get('ecocash_number'),
+          // Only checked server-side when the payout number actually changes.
+          current_password: form.get('current_password') || undefined,
         }),
       });
       if (!res.ok) {
@@ -75,7 +77,11 @@ export function ProfileForm({
         </Select>
       </div>
       <Field name="district" label="District" defaultValue={initial.district} />
-      <Field name="ecocash_number" label="EcoCash number" defaultValue={initial.ecocash_number} />
+      <Field name="ecocash_number" label="EcoCash number (payouts)" defaultValue={initial.ecocash_number} />
+      <Field
+        name="current_password" type="password" autoComplete="current-password"
+        label="Current password (required to change your EcoCash number)"
+      />
 
       <Button type="submit" disabled={submitting} className="w-full neo-btn bg-primary text-primary-foreground">
         {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : 'Save changes'}

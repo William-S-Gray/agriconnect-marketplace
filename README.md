@@ -45,49 +45,40 @@ npm run test
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and fill in as needed. Only `VITE_`-prefixed variables reach the client build, and real `.env` files are gitignored.
+Copy `.env.example` to `.env.local` and fill it in. Every variable is server-only; real env files are gitignored.
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `REDIS_URL` | No | Redis endpoint for auth rate-limit counters (any standard Redis: self-hosted, Upstash, Vercel KV). Unset, counters fall back to Postgres — correct, but heavier on the primary. If set but unreachable, the limiter degrades rather than failing open. |
-| `VITE_SITE_URL` | No | Public base URL of the deployed site, no trailing slash (e.g. `https://agriconnect.co.zw`). Makes the `og:image` / `twitter:image` tags absolute, which social crawlers prefer. Unset, they fall back to root-relative paths — fine locally, less reliable across crawlers. **Set this at deploy time to make link previews work properly.** |
+| `DATABASE_URL` | Yes | Postgres connection string (Neon pooled endpoint recommended). |
+| `MFA_ENCRYPTION_KEY` | Yes | Encrypts TOTP secrets at rest and peppers recovery-code hashes. Rotating it invalidates all enrolled MFA. |
+| `APP_URL` | In production | Public origin, no trailing slash. Used for CSRF origin checks, reset links and `og:image` URLs. |
+| `SIMULATED_PAYMENTS` | No | `true` lets checkout record orders as paid into escrow without a payment provider (the demo). Otherwise checkout returns 503. |
+| `REDIS_URL` | No | Redis for auth rate-limit counters. Unset, counters live in Postgres. If set but unreachable, the limiter falls back rather than failing open. |
+| `TEST_DATABASE_URL` | No | Database for `npm test`; the suite writes and deletes rows. Falls back to `DATABASE_URL`. |
+| `ANOMALY_TRUSTED_PROXY` | No | `vercel` or `cloudflare` when deployed behind one; enables impossible-travel detection from that edge's geo headers. Unset, travel detection is inert. |
+
+Before pushing, `npm run ci` runs the same gate as CI against throwaway containers.
+
+Scheduled maintenance: run `npm run db:prune` daily to delete expired sessions, spent reset tokens and old audit rows.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-src/
-├── components/
-│   ├── charts/                  # BarChartPanel (the only recharts importer) + LazyBarChart wrapper
-│   ├── DemoModeBanner.tsx       # Persistent "Demo Mode" banner across all pages
-│   ├── EcoCashModal.tsx         # Functional EcoCash payment simulation (PIN → processing → receipt)
-│   ├── ProtectedRoute.tsx       # ProtectedRoute wrapper + AppErrorBoundary
-│   ├── SessionAnomalyAlert.tsx  # Real-time banner for detected session anomalies
-│   └── ...existing components
-├── lib/
-│   ├── account-lockout.ts       # 5 failed attempts → 15 minute lockout
-│   ├── demo-credentials.ts      # DEMO_PASSWORD, credential verification, admin allowlist
-│   ├── mock-data.ts             # TypeScript interfaces + helpers (calculateOrder, PROVINCES, etc.)
-│   ├── seed-data.ts             # Comprehensive seed: 8 farmers, 12 listings, 5 orders, 18 prices, 1 dispute
-│   ├── session-anomaly.ts       # Privilege escalation, impossible travel, data volume detectors
-│   └── ...existing lib files
-├── pages/
-│   ├── AdminDashboard.tsx       # Protected (/admin/login) — full farmer verification, orders, disputes, analytics
-│   ├── AdminLoginPage.tsx       # Unlisted admin login at /admin/login
-│   ├── BuyerDashboard.tsx       # Protected — seeded active orders, recommended produce
-│   ├── CartPage.tsx             # Functional EcoCash checkout → order confirmation → navigate to dashboard
-│   ├── FarmerDashboard.tsx      # Protected — seeded stats, pending orders, listings list
-│   ├── FarmerRegisterPage.tsx   # Multi-step with per-step validation, real file upload, password toggles
-│   ├── Index.tsx                # Homepage with seeded listings, verified farmers, live stats
-│   ├── LoginPage.tsx            # Admin removed from public selector (use /admin/login)
-│   └── MarketPricesPage.tsx     # Populated price table + Recharts bar chart
-├── stores/
-│   └── auth-store.ts            # Zustand store — versioned persistence, login validation, cart
-└── App.tsx                      # AppErrorBoundary, DemoModeBanner, QueryClient config, admin route
+app/                 Next.js App Router pages and route handlers (app/api/**)
+components/          UI components (shadcn/ui under components/ui)
+lib/                 Server modules: session, rbac, csrf, rate-limit, mfa, anomaly(-monitor), order-lifecycle
+middleware.ts        Cookie-presence pre-filter + per-request CSP nonce (not the auth boundary)
+migrations/          Forward-only SQL, applied by scripts/migrate.ts
+scripts/             migrate, seed (refuses production), prune, ci-local.sh
+tests/               Vitest suites; integration tests need a database
 ```
 
 ---
+
+> The section below is the historical changelog from the earlier Vite/Zustand
+> version of this app. File names in it no longer exist.
 
 ## ✅ What Was Fixed (Expert Panel Review — All Phases)
 

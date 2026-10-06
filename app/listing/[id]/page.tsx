@@ -12,7 +12,8 @@ import { AddToCart } from './add-to-cart';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
+export default async function ListingDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   // The id comes from the URL, so it is validated as a uuid before it reaches a
   // query — an invalid cast would otherwise surface as a 500.
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound();
@@ -30,12 +31,16 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
            f.status AS farmer_status, f.rating, f.total_reviews
       FROM listings l
       JOIN farmers f ON f.id = l.farmer_id
-     WHERE l.id = ${params.id}
+     WHERE l.id = ${params.id} AND f.status <> 'SUSPENDED'
      LIMIT 1
   `;
 
   const row = rows[0];
   if (!row) notFound();
+
+  // views_count was displayed to farmers but never incremented.
+  // ponytail: one write per view; batch it if listing traffic gets heavy.
+  await sql`UPDATE listings SET views_count = views_count + 1 WHERE id = ${row.id}`;
 
   const listing = toListing(row);
   const session = await optionalPageUser();

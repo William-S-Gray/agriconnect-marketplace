@@ -4,6 +4,8 @@ import { sql } from '@/lib/db';
 import { requireUser, stripPrivilegedFields } from '@/lib/rbac';
 import { observePrivilegedFields } from '@/lib/anomaly-monitor';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { verifyPassword } from '@/lib/password';
+import { clientIp, chargeAttempt, settleAttempt, tooManyRequests } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -22,25 +24,31 @@ export const runtime = 'nodejs';
  * session's user id — never an id supplied by the client.
  */
 
+// Same rule register enforces; the profile edit used to accept any string.
+const ZW_PHONE = /^(\+263|0)(7[1-8])\d{7}$/;
+/** Optional contact numbers: blank (the form sends '' for an empty field) or valid. */
+const optionalPhone = z.union([z.literal(''), z.string().trim().regex(ZW_PHONE)]).optional();
+
 const farmerPatch = z.object({
   name: z.string().trim().min(3).max(120).optional(),
   farm_name: z.string().trim().min(2).max(160).optional(),
-  phone: z.string().trim().max(20).optional(),
+  phone: optionalPhone,
   province: z.string().trim().max(80).optional(),
   district: z.string().trim().max(80).optional(),
-  ecocash_number: z.string().trim().max(20).optional(),
+  ecocash_number: z.string().trim().regex(ZW_PHONE).optional(),
+  current_password: z.string().min(1).max(128).optional(),
 });
 
 const buyerPatch = z.object({
   name: z.string().trim().min(3).max(120).optional(),
-  phone: z.string().trim().max(20).optional(),
+  phone: optionalPhone,
   city: z.string().trim().max(80).optional(),
   address: z.string().trim().max(240).optional(),
-  ecocash_number: z.string().trim().max(20).optional(),
+  ecocash_number: optionalPhone,
 });
 
 export async function PATCH(request: Request) {
-  const csrf = verifyOrigin('PATCH');
+  const csrf = await verifyOrigin('PATCH');
   if (!csrf.ok) return csrfFailure();
 
   const auth = await requireUser();
@@ -60,7 +68,6 @@ export async function PATCH(request: Request) {
   // Defence in depth: remove privileged keys before validation and surface the
   // fact that they were present.
   const { clean, stripped } = stripPrivilegedFields(body as Record<string, unknown>);
-
   // No part of this application's UI ever sends one of these, so an attempt to
   // set one is reported as a privilege escalation attempt rather than silently
   // dropped. Field names only — never the values.
@@ -72,6 +79,31 @@ export async function PATCH(request: Request) {
     const parsed = farmerPatch.safeParse(clean);
     if (!parsed.success) return badRequest();
     const p = parsed.data;
+
+    // The EcoCash number is where payouts go. Changing it is the one profile
+    // edit a hijacked session could turn into money, so it needs the password.
+    if (p.ecocash_number !== undefined) {
+      const [row] = await sql<{ ecocash_number: string; password_hash: string }>`
+        SELECT f.ecocash_number, u.password_hash
+          FROM farmers f JOIN users u ON u.id = f.user_id
+         WHERE f.user_id = ${auth.user.id}
+      `;
+      if (row && row.ecocash_number !== p.ecocash_number) {
+        // Throttled like login: otherwise this is an unlimited password oracle
+        // for whoever holds the session.
+        const charge = await chargeAttempt('login', { identifier: auth.user.email, ip: clientIp(request.headers) });
+        if (charge.limited) return tooManyRequests(charge.retryAfterSeconds);
+        const ok = Boolean(p.current_password) && (await verifyPassword(row.password_hash, p.current_password!));
+        if (ok) await settleAttempt(charge.ticket, true);
+        if (!ok) {
+          return NextResponse.json(
+            { error: 'Enter your current password to change your EcoCash number.', code: 'reauth_required' },
+            { status: 401 },
+          );
+        }
+      }
+    }
+
     await sql`
       UPDATE farmers
          SET name           = COALESCE(${p.name ?? null}, name),

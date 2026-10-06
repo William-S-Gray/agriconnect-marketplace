@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { CheckCircle2, Loader2, Smartphone, Shield, AlertCircle } from 'lucide-react';
 
 interface EcoCashModalProps {
@@ -12,23 +10,13 @@ interface EcoCashModalProps {
   onClose: () => void;
   amount: number;
   itemCount: number;
-  onSuccess: (orderRef: string) => void;
+  onSuccess: () => void;
 }
 
-type Step = 'pin' | 'processing' | 'success' | 'error';
-
-function generateOrderRef(): string {
-  const prefix = 'AG';
-  const year = new Date().getFullYear();
-  const rand = Math.floor(Math.random() * 90000) + 10000;
-  return `${prefix}-${year}-${rand}`;
-}
+type Step = 'confirm' | 'processing' | 'success' | 'error';
 
 export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: EcoCashModalProps) {
-  const [step, setStep] = useState<Step>('pin');
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const [orderRef, setOrderRef] = useState(generateOrderRef);
+  const [step, setStep] = useState<Step>('confirm');
   const [countdown, setCountdown] = useState(0);
 
   // Hold onSuccess in a ref so the processing effect does not restart (and
@@ -37,16 +25,10 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
 
-  // Reset state when modal opens. A fresh reference per checkout — previously
-  // orderRef was generated once for the component's lifetime, so every order
-  // placed in the same session shared one reference number.
+  // Reset state when the modal opens. The order reference is the server's,
+  // shown by the caller once checkout succeeds; this modal no longer invents one.
   useEffect(() => {
-    if (open) {
-      setStep('pin');
-      setPin('');
-      setError('');
-      setOrderRef(generateOrderRef());
-    }
+    if (open) setStep('confirm');
   }, [open]);
 
   // Processing countdown
@@ -60,7 +42,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
           // Simulate 95% success rate
           if (Math.random() > 0.05) {
             setStep('success');
-            onSuccessRef.current(orderRef);
+            onSuccessRef.current();
           } else {
             setStep('error');
           }
@@ -70,22 +52,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [step, orderRef]);
-
-  const handleSubmitPin = () => {
-    if (pin.length !== 4) {
-      setError('Please enter your 4-digit EcoCash PIN');
-      return;
-    }
-    setError('');
-    setStep('processing');
-  };
-
-  const handlePinChange = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 4);
-    setPin(digits);
-    if (error) setError('');
-  };
+  }, [step]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && step !== 'processing') onClose(); }}>
@@ -96,7 +63,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
           </DialogTitle>
         </DialogHeader>
 
-        {step === 'pin' && (
+        {step === 'confirm' && (
           <div className="space-y-5">
             {/* Payment summary */}
             <div className="neo-inset rounded-xl p-4 space-y-2">
@@ -120,26 +87,14 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               <span>Your payment is held in escrow and only released to the farmer once you confirm delivery.</span>
             </div>
 
-            {/* PIN input */}
-            <div className="space-y-2">
-              <Label className="text-foreground font-medium">Enter your 4-digit EcoCash PIN</Label>
-              <Input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => handlePinChange(e.target.value)}
-                placeholder="••••"
-                className="neo-inset border-none text-center text-2xl tracking-[0.5em] font-mono"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmitPin()}
-              />
-              {error && (
-                <p className="text-destructive text-xs flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" /> {error}
-                </p>
-              )}
-            </div>
+            {/*
+              No PIN field. A real EcoCash payment is approved on the payer's
+              phone (USSD push); a website asking for the PIN teaches users to
+              hand it to any page that looks like a checkout.
+            */}
+            <p className="text-sm text-muted-foreground">
+              Simulated payment: in production you would approve this on your phone.
+            </p>
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 neo-flat border-none" onClick={onClose}>
@@ -147,8 +102,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               </Button>
               <Button
                 className="flex-1 btn-gold"
-                onClick={handleSubmitPin}
-                disabled={pin.length !== 4}
+                onClick={() => setStep('processing')}
               >
                 Authorise Payment
               </Button>
@@ -192,10 +146,6 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
             </div>
             <div className="neo-inset rounded-xl p-4 text-sm space-y-1">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Order Reference</span>
-                <span className="font-mono font-bold text-foreground">{orderRef}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount Paid</span>
                 <span className="font-mono font-bold text-accent">${amount.toFixed(2)}</span>
               </div>
@@ -226,7 +176,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               <Button variant="outline" className="flex-1 neo-flat border-none" onClick={onClose}>
                 Cancel
               </Button>
-              <Button className="flex-1 btn-gold" onClick={() => setStep('pin')}>
+              <Button className="flex-1 btn-gold" onClick={() => setStep('confirm')}>
                 Try Again
               </Button>
             </div>

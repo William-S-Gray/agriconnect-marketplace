@@ -1,6 +1,7 @@
 import 'server-only';
 import { sql } from './db';
 import { getRedis } from './redis';
+import { logError } from './log';
 import {
   RedisRateLimitStore,
   PostgresRateLimitStore,
@@ -106,9 +107,10 @@ export async function recordAttempt(
         storeKey(kind, 'ip', opts.ip), now, IP_POLICY[kind].windowSeconds,
       );
     }
-  } catch {
+  } catch (error) {
     // The audit row is already committed, so a Redis outage degrades to the
     // Postgres store counting that row — the attempt is never uncounted.
+    noteRedisFailure(error);
   }
 }
 
@@ -145,6 +147,17 @@ const postgresStore = new PostgresRateLimitStore(sql);
  * otherwise — including when a Redis command throws, so a counter-store outage
  * degrades to the slower store instead of removing the limit.
  */
+let lastRedisFailureLog = 0;
+
+/** Logs a Redis failure at most once a minute: visible, but cannot flood. */
+function noteRedisFailure(error: unknown): void {
+  const now = Date.now();
+  if (now - lastRedisFailureLog < 60_000) return;
+  lastRedisFailureLog = now;
+  // ponytail: per-process throttle; a shared one is not worth it for a log line.
+  logError('ratelimit_redis_fallback', error);
+}
+
 async function withStore<T>(
   run: (store: RateLimitStore) => Promise<T>,
 ): Promise<T> {
@@ -152,9 +165,8 @@ async function withStore<T>(
   if (redis) {
     try {
       return await run(new RedisRateLimitStore(redis));
-    } catch {
-      // Fall through to Postgres. Deliberately silent per call: a flapping
-      // Redis would otherwise flood the logs from the login path.
+    } catch (error) {
+      noteRedisFailure(error);
     }
   }
   return run(postgresStore);
@@ -221,6 +233,99 @@ export async function checkRateLimit(
   );
 }
 
+// ─── Charge-first limiting for concurrent-sensitive endpoints ─────────────────
+
+/**
+ * A pending attempt. It counts as a failure for everyone else until settled.
+ */
+export interface AttemptTicket {
+  auditId: string;
+  redisCharges: { key: string; member: string }[];
+}
+
+/**
+ * Check-then-record (checkRateLimit + recordAttempt) has a race: a burst of
+ * concurrent requests all pass the check before any of them records, so
+ * N parallel guesses cost one window's allowance instead of N. Login and MFA
+ * use this instead: the attempt is recorded FIRST, then the stats of every
+ * other attempt — including ones still in flight — decide whether it may
+ * proceed.
+ *
+ * A throttled attempt is refunded, so hammering a throttled account does not
+ * extend its lockout (the progressive-delay design must keep recovering).
+ */
+export async function chargeAttempt(
+  kind: AttemptKind,
+  opts: { identifier?: string | null; ip?: string | null },
+): Promise<{ limited: true; retryAfterSeconds: number } | { limited: false; ticket: AttemptTicket }> {
+  const identifier = opts.identifier?.toLowerCase().trim() || null;
+  const ip = opts.ip ?? null;
+
+  const [row] = await sql<{ id: string }>`
+    INSERT INTO auth_attempts (kind, identifier, ip, succeeded)
+    VALUES (${kind}, ${identifier}, ${ip}, FALSE)
+    RETURNING id
+  `;
+  const ticket: AttemptTicket = { auditId: String(row!.id), redisCharges: [] };
+
+  const targets: { column: 'identifier' | 'ip'; value: string; policy: Policy }[] = [];
+  if (identifier) targets.push({ column: 'identifier', value: identifier, policy: IDENTIFIER_POLICY[kind] });
+  if (ip) targets.push({ column: 'ip', value: ip, policy: IP_POLICY[kind] });
+
+  const redis = getRedis();
+  const results = await Promise.all(targets.map(async ({ column, value, policy }) => {
+    const key = storeKey(kind, column, value);
+    if (redis) {
+      try {
+        const store = new RedisRateLimitStore(redis);
+        const { member, stats } = await store.charge(key, new Date(), policy.windowSeconds);
+        ticket.redisCharges.push({ key, member });
+        return evaluate(stats, policy);
+      } catch (error) {
+        noteRedisFailure(error);
+      }
+    }
+    return evaluate(await postgresStore.stats(key, policy.windowSeconds, ticket.auditId), policy);
+  }));
+
+  const worst = results.reduce(
+    (w, r) => (r.limited && r.retryAfterSeconds > w.retryAfterSeconds ? r : w),
+    ALLOWED,
+  );
+  if (worst.limited) {
+    await releaseCharge(ticket, 'refund');
+    return { limited: true, retryAfterSeconds: worst.retryAfterSeconds };
+  }
+  return { limited: false, ticket };
+}
+
+/**
+ * Settles a charged attempt. A failure needs nothing — it is already counted.
+ * A success is re-labelled in the audit trail and removed from the counters,
+ * so successful logins from a shared IP never throttle that IP.
+ */
+export async function settleAttempt(ticket: AttemptTicket, succeeded: boolean): Promise<void> {
+  if (succeeded) await releaseCharge(ticket, 'success');
+}
+
+async function releaseCharge(ticket: AttemptTicket, how: 'refund' | 'success'): Promise<void> {
+  if (how === 'refund') {
+    // Throttled attempts were never audited before charge-first either.
+    await sql`DELETE FROM auth_attempts WHERE id = ${ticket.auditId}::bigint`;
+  } else {
+    await sql`UPDATE auth_attempts SET succeeded = TRUE WHERE id = ${ticket.auditId}::bigint`;
+  }
+  const redis = getRedis();
+  if (!redis || ticket.redisCharges.length === 0) return;
+  try {
+    const store = new RedisRateLimitStore(redis);
+    await Promise.all(ticket.redisCharges.map(({ key, member }) => store.uncharge(key, member)));
+  } catch (error) {
+    // A leftover member only over-counts, and expires with the window.
+    noteRedisFailure(error);
+  }
+}
+
 /** Standard 429 with Retry-After, for use by route handlers. */
 export function tooManyRequests(retryAfterSeconds: number): Response {
   return new Response(
@@ -239,9 +344,20 @@ export function tooManyRequests(retryAfterSeconds: number): Response {
   );
 }
 
-/** Best-effort client IP from proxy headers. */
+/**
+ * Client IP from proxy headers.
+ *
+ * The RIGHTMOST X-Forwarded-For entry is the one appended by the proxy closest
+ * to us; everything to its left is whatever the client chose to send. Taking
+ * the leftmost let an attacker rotate a fake IP per request and walk straight
+ * past the per-IP limit. On Vercel the header holds just the client IP, so
+ * leftmost and rightmost agree there.
+ */
 export function clientIp(headers: Headers): string | null {
   const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0]!.trim();
+  if (forwarded) {
+    const hops = forwarded.split(',').map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1]!;
+  }
   return headers.get('x-real-ip') ?? null;
 }

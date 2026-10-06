@@ -34,7 +34,7 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
-const { getSession } = await import('@/lib/session');
+const { getSession, destroySession } = await import('@/lib/session');
 const { sql, pool } = await import('@/lib/pool');
 const { hashPassword } = await import('@/lib/password');
 
@@ -47,14 +47,18 @@ let userId: string;
 const hashToken = (token: string) =>
   createHash('sha256').update(token).digest('hex');
 
-/** Issues a session whose last_used_at is old enough that rotation is due. */
-async function issueStaleSession(): Promise<string> {
+/**
+ * Issues a session whose token is old enough that rotation is due. `lastUsed`
+ * lets a test model an ACTIVE session (recently used, but rotated long ago).
+ */
+async function issueStaleSession(lastUsed = '2 hours'): Promise<string> {
   const token = `rotation-token-${randomUUID()}`;
   await sql`
-    INSERT INTO sessions (user_id, token_hash, session_epoch, last_used_at,
+    INSERT INTO sessions (user_id, token_hash, session_epoch, last_used_at, rotated_at,
                           expires_at, absolute_expires_at)
     VALUES (${userId}, ${hashToken(token)},
             (SELECT session_epoch FROM users WHERE id = ${userId}),
+            now() - ${lastUsed}::interval,
             now() - interval '2 hours',
             now() + interval '6 hours',
             now() + interval '7 days')
@@ -64,8 +68,8 @@ async function issueStaleSession(): Promise<string> {
 }
 
 async function sessionRow(token: string) {
-  const [row] = await sql<{ id: string; expires_at: Date; last_used_at: Date }>`
-    SELECT id, expires_at, last_used_at FROM sessions
+  const [row] = await sql<{ id: string; expires_at: Date; last_used_at: Date; rotated_at: Date }>`
+    SELECT id, expires_at, last_used_at, rotated_at FROM sessions
      WHERE token_hash = ${hashToken(token)}
   `;
   return row ?? null;
@@ -125,10 +129,10 @@ describe('rotation in a read-only cookie context (page render)', () => {
 
     await getSession();
 
-    // last_used_at is what marks rotation as due; refreshing it here would
+    // rotated_at is what marks rotation as due; refreshing it here would
     // postpone rotation forever for anyone who only browses pages.
     const row = (await sessionRow(token))!;
-    const age = Date.now() - new Date(row.last_used_at).getTime();
+    const age = Date.now() - new Date(row.rotated_at).getTime();
     expect(age).toBeGreaterThan(60 * 60 * 1000);
   });
 });
@@ -176,5 +180,59 @@ describe('rotation where cookies can be written (route handler)', () => {
     `;
     expect(new Date(after!.absolute_expires_at).getTime())
       .toBe(new Date(before!.absolute_expires_at).getTime());
+  });
+});
+
+describe('rotation of a session in active use (F-047)', () => {
+  it('rotates an hour-old token even though the session was used a minute ago', async () => {
+    cookieWritesAllowed = true;
+    // The old code measured rotation from last_used_at, so a session touched
+    // every few minutes never rotated at all.
+    const token = await issueStaleSession('1 minute');
+    await getSession();
+    expect(cookieJar.get(COOKIE)).not.toBe(token);
+  });
+});
+
+describe('concurrent rotation (F-023)', () => {
+  it('leaves the browser holding a working token whichever response lands last', async () => {
+    cookieWritesAllowed = true;
+    const token = await issueStaleSession();
+
+    const [a, b] = await Promise.all([getSession(), getSession()]);
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+
+    // Exactly one rotation committed (guards a vacuous pass where both lose).
+    const [rotated] = await sql<{ n: number }>`
+      SELECT count(*)::int AS n FROM sessions WHERE prev_token_hash = ${hashToken(token)}`;
+    expect(rotated!.n).toBe(1);
+
+    // Whatever the jar ended with — the winner's token or the loser's restored
+    // one — must still resolve.
+    expect(await getSession()).not.toBeNull();
+  });
+
+  it('accepts the pre-rotation token during the grace period, then moves it on', async () => {
+    cookieWritesAllowed = true;
+    const token = await issueStaleSession();
+    await getSession(); // rotates
+
+    cookieJar.set(COOKIE, token); // a request that left before the rotation landed
+    expect(await getSession()).not.toBeNull();
+    expect(cookieJar.get(COOKIE)).not.toBe(token); // re-rotated onto a live token
+  });
+
+  it('logging out with the pre-rotation token still revokes the session', async () => {
+    cookieWritesAllowed = true;
+    const token = await issueStaleSession();
+    await getSession(); // rotates
+    const current = cookieJar.get(COOKIE)!;
+
+    cookieJar.set(COOKIE, token);
+    await destroySession();
+
+    cookieJar.set(COOKIE, current);
+    expect(await getSession()).toBeNull();
   });
 });

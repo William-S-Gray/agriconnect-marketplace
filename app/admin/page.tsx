@@ -48,6 +48,17 @@ export default async function AdminPage() {
      LIMIT 200
   `;
 
+  const users = await sql<{
+    id: string; email: string; role: string; status: string; name: string | null;
+  }>`
+    SELECT u.id, u.email, u.role, u.status, COALESCE(f.name, b.name) AS name
+      FROM users u
+      LEFT JOIN farmers f ON f.user_id = u.id
+      LEFT JOIN buyers  b ON b.user_id = u.id
+     ORDER BY u.created_at DESC
+     LIMIT 200
+  `;
+
   const orders = await sql<{
     id: string; reference: string; status: string; payment_status: string;
     total_amount: string; created_at: Date; buyer_name: string; farm_name: string;
@@ -99,7 +110,7 @@ export default async function AdminPage() {
     session.id,
     session.sessionId,
     'admin_records',
-    farmers.length + orders.length + disputes.length,
+    users.length + farmers.length + orders.length + disputes.length,
   );
 
   const [security] = await sql<{ open_high: string }>`
@@ -119,6 +130,10 @@ export default async function AdminPage() {
         listings: Number(stats?.listings ?? 0), orders: Number(stats?.orders ?? 0),
         disputes: Number(stats?.disputes ?? 0),
       }}
+      currentUserId={session.id}
+      users={users.map((u) => ({
+        id: u.id, email: u.email, role: u.role, status: u.status, name: u.name ?? '',
+      }))}
       farmers={farmers.map((f) => ({
         userId: f.user_id, name: f.name, farmName: f.farm_name, province: f.province,
         status: f.status, rating: num(f.rating), totalSales: f.total_sales, email: f.email,

@@ -22,8 +22,9 @@ USE_CONTAINERS=1
 
 PG_NAME=agri-ci-postgres
 REDIS_NAME=agri-ci-redis
-PG_PORT=55432
-REDIS_PORT=56379
+# Override when a port is taken: CI_PG_PORT=55532 npm run ci
+PG_PORT=${CI_PG_PORT:-55432}
+REDIS_PORT=${CI_REDIS_PORT:-56379}
 
 step() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 fail() { printf '\n\033[31m✖ %s failed\033[0m\n' "$1"; exit 1; }

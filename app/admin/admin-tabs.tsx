@@ -6,9 +6,10 @@ import Link from 'next/link';
 import {
   Shield, Users, Package, AlertTriangle, BarChart3, DollarSign,
   Sprout, TrendingUp, CheckCircle2, XCircle, LogOut, Loader2,
-  ShieldAlert,
+  ShieldAlert, KeyRound, UserCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LazyBarChart } from '@/components/charts/LazyBarChart';
 import { OrderActions } from '@/components/OrderActions';
@@ -19,6 +20,9 @@ import { toast } from 'sonner';
 interface Stats {
   gmv: number; revenue: number; users: number; farmers: number;
   verified: number; pending: number; listings: number; orders: number; disputes: number;
+}
+interface UserRow {
+  id: string; email: string; role: string; status: string; name: string;
 }
 interface FarmerRow {
   userId: string; name: string; farmName: string; province: string;
@@ -43,10 +47,12 @@ interface PriceRow {
  * use it.
  */
 export function AdminTabs({
-  email, stats, farmers, orders, disputes, prices, weekly,
+  email, stats, users, currentUserId, farmers, orders, disputes, prices, weekly,
   securityAlerts,
 }: {
   securityAlerts: number;
+  users: UserRow[];
+  currentUserId: string;
   email: string;
   stats: Stats;
   farmers: FarmerRow[];
@@ -62,6 +68,7 @@ export function AdminTabs({
 
   const tabs = [
     { icon: BarChart3, label: 'Overview', value: 'overview' },
+    { icon: UserCog, label: 'Users', value: 'users' },
     { icon: Users, label: 'Farmers', value: 'farmers', badge: stats.pending },
     { icon: Package, label: 'Orders', value: 'orders' },
     { icon: AlertTriangle, label: 'Disputes', value: 'disputes', badge: stats.disputes },
@@ -200,6 +207,21 @@ export function AdminTabs({
                 <LazyBarChart data={weekly} xKey="day" dataKey="orders" name="Orders" height={200} fill="#4f7c3f" />
               </div>
             )}
+          </>
+        )}
+
+        {tab === 'users' && (
+          <>
+            <h1 className="font-heading text-2xl font-bold text-foreground mb-2">Users</h1>
+            <p className="text-sm text-muted-foreground mb-6 max-w-3xl">
+              Setting a password signs that person out everywhere. Pass it on
+              privately and ask them to change it under Settings → Security.
+            </p>
+            <ul className="space-y-3 max-w-3xl">
+              {users.map((u) => (
+                <UserItem key={u.id} user={u} isSelf={u.id === currentUserId} />
+              ))}
+            </ul>
           </>
         )}
 
@@ -364,5 +386,88 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
         </table>
       </div>
     </div>
+  );
+}
+
+/** A random 20-character password from an unambiguous alphabet. */
+function generatePassword(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*?';
+  // Rejection sampling keeps every character equally likely.
+  const limit = 256 - (256 % alphabet.length);
+  let out = '';
+  while (out.length < 20) {
+    for (const b of crypto.getRandomValues(new Uint8Array(32))) {
+      if (b < limit && out.length < 20) out += alphabet[b % alphabet.length];
+    }
+  }
+  return out;
+}
+
+function UserItem({ user, isSelf }: { user: UserRow; isSelf: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin/users/password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ userId: user.id, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error((data.details ?? [data.error ?? 'Could not set the password.']).join(' '));
+        return;
+      }
+      toast.success(`Password set for ${user.email}. They have been signed out.`);
+      setOpen(false);
+      setPassword('');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="neo-card p-4 space-y-3">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex-1 min-w-[200px]">
+          <p className="font-medium text-foreground text-sm">{user.name || user.email}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
+        </div>
+        <span className="text-xs text-muted-foreground w-28 capitalize">
+          {user.role} · {user.status.toLowerCase()}
+        </span>
+        {isSelf ? (
+          <Link href="/settings/security" className="text-xs text-primary hover:underline">
+            Change yours in Settings
+          </Link>
+        ) : (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setOpen((o) => !o)}>
+            <KeyRound className="h-3 w-3 mr-1" /> Set password
+          </Button>
+        )}
+      </div>
+      {open && (
+        <div className="flex gap-2 flex-wrap items-center">
+          <Input
+            aria-label={`New password for ${user.email}`}
+            value={password} onChange={(e) => setPassword(e.target.value)}
+            autoComplete="off" spellCheck={false}
+            className="neo-inset border-none h-8 text-sm font-mono flex-1 min-w-[220px]"
+            placeholder="12+ characters"
+          />
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setPassword(generatePassword())}>
+            Generate
+          </Button>
+          <Button size="sm" className="h-8 text-xs bg-primary text-primary-foreground"
+            disabled={busy || password.length === 0} onClick={save}>
+            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Save'}
+          </Button>
+        </div>
+      )}
+    </li>
   );
 }

@@ -81,7 +81,7 @@ jobs:
       # runner in a way it never was on a throwaway VM — the workspace survives
       # between runs, so leftovers from a previous branch would otherwise be
       # present in this one.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           clean: true
 
@@ -148,7 +148,7 @@ jobs:
     runs-on: [self-hosted, linux, x64]
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Scan tracked files for credentials
         run: |

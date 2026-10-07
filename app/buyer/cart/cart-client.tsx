@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Minus, Plus, Loader2 } from 'lucide-react';
+import { Trash2, Minus, Plus, Loader2, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EcoCashModal } from '@/components/EcoCashModal';
 import { toast } from 'sonner';
@@ -137,7 +137,7 @@ export function CartClient({
         </div>
 
         <Button className="w-full btn-gold text-lg py-3 h-auto" onClick={() => setCheckoutOpen(true)}>
-          📱 Pay with EcoCash
+          <Smartphone className="h-5 w-5 mr-2" aria-hidden /> Pay with EcoCash
         </Button>
       </div>
 

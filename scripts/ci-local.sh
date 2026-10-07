@@ -89,6 +89,8 @@ step "Typecheck";            npm run typecheck           || fail "typecheck"
 step "Lint";                 npm run lint                || fail "lint"
 step "Test";                 npm run test                || fail "tests"
 step "Build";                npm run build               || fail "build"
+step "End-to-end tests"
+npx playwright install chromium >/dev/null && npm run test:e2e || fail "e2e tests"
 step "Audit runtime dependencies"
 npm audit --omit=dev --audit-level=high || fail "dependency audit"
 

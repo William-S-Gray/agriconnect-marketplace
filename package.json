@@ -14,7 +14,8 @@
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "typecheck": "tsc --noEmit",
     "ci": "./scripts/ci-local.sh",
-    "db:prune": "tsx --env-file-if-exists=.env.local scripts/prune.ts"
+    "db:prune": "tsx --env-file-if-exists=.env.local scripts/prune.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -74,6 +75,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.16.5",
     "@types/pg": "^8.23.1",

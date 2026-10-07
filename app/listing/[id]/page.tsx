@@ -2,13 +2,14 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { MapPin, Truck, Package, Calendar, ShieldCheck } from 'lucide-react';
 import { sql } from '@/lib/db';
-import { toListing, num, type ListingRow } from '@/lib/serialize';
+import { toListing, num, formatDate, deliveryLabel, type ListingRow } from '@/lib/serialize';
 import { optionalPageUser } from '@/lib/page-guard';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PriceTag } from '@/components/PriceTag';
 import { AddToCart } from './add-to-cart';
+import { ProduceArt } from '@/components/ProduceArt';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,8 +55,8 @@ export default async function ListingDetailPage(props: { params: Promise<{ id: s
         </Link>
 
         <div className="grid gap-8 md:grid-cols-2 mt-6">
-          <div className="neo-card rounded-2xl aspect-[4/3] flex items-center justify-center text-7xl">
-            {categoryEmoji(listing.category)}
+          <div className="neo-card rounded-2xl aspect-4/3 overflow-hidden">
+            <ProduceArt category={listing.category} produceType={listing.produce_type} size="lg" />
           </div>
 
           <div>
@@ -77,9 +78,9 @@ export default async function ListingDetailPage(props: { params: Promise<{ id: s
             <dl className="mt-6 space-y-2 text-sm">
               <Row icon={Package} label="Available" value={`${listing.quantity_kg} ${listing.quantity_unit}`} />
               <Row icon={MapPin} label="Location" value={`${listing.district}, ${listing.province}`} />
-              <Row icon={Truck} label="Delivery" value={listing.delivery_options.join(', ') || 'Pickup'} />
+              <Row icon={Truck} label="Delivery" value={listing.delivery_options.map(deliveryLabel).join(', ') || 'Pickup'} />
               {listing.harvest_date && (
-                <Row icon={Calendar} label="Harvested" value={listing.harvest_date} />
+                <Row icon={Calendar} label="Harvested" value={formatDate(listing.harvest_date)} />
               )}
               <Row
                 icon={ShieldCheck}
@@ -129,12 +130,4 @@ function Row({
       <dd className="text-foreground">{value}</dd>
     </div>
   );
-}
-
-function categoryEmoji(category: string): string {
-  const map: Record<string, string> = {
-    Vegetables: '🥬', Fruits: '🍎', Grains: '🌾', Legumes: '🫘',
-    Livestock: '🐄', Dairy: '🥛', Poultry: '🐔', Herbs: '🌿',
-  };
-  return map[category] ?? '🌱';
 }

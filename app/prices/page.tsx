@@ -41,8 +41,9 @@ export default async function MarketPricesPage({
     .sort((a, b) => b.price - a.price)
     .slice(0, 10);
 
-  const COLORS = ['#4f7c3f', '#7ab85a', '#a8d87f', '#c8e6a0', '#e8f5c8',
-                  '#f0f9e0', '#3d6b2f', '#5a9048', '#78b560'];
+  // Brand greens, all dark enough to read against the card in light and dark
+  // mode; the old palette's palest bars (#e8f5c8, #f0f9e0) were near-invisible.
+  const COLORS = ['#2d6c50', '#3f8f69', '#4f7c3f', '#5a9048'];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

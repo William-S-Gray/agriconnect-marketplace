@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { ShoppingBag, DollarSign, Heart } from 'lucide-react';
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { toListing, num, iso, type ListingRow } from '@/lib/serialize';
+import { iso, num, toListing, type ListingRow, formatDate } from '@/lib/serialize';
+import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { ProduceCard } from '@/components/ProduceCard';
@@ -59,11 +60,11 @@ export default async function BuyerDashboardPage() {
       <SiteNav cartCount={Number(stats?.cart ?? 0)} />
       <main className="container mx-auto px-4 py-8 flex-1">
         <h1 className="font-heading text-2xl font-bold text-foreground">
-          Welcome back, {profile?.name ?? session.email} 👋
+          Welcome back, {profile?.name?.split(' ')[0] ?? session.email}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Your buying dashboard · {profile?.city}</p>
 
-        <div className="grid grid-cols-3 gap-4 mt-8 max-w-2xl">
+        <div className="grid grid-cols-3 gap-4 mt-8">
           <Stat icon={ShoppingBag} label="Orders placed" value={String(stats?.orders ?? 0)} />
           <Stat icon={DollarSign} label="Total spent" value={`$${num(stats?.spent).toFixed(2)}`} />
           <Stat icon={Heart} label="In cart" value={String(stats?.cart ?? 0)} />
@@ -82,18 +83,18 @@ export default async function BuyerDashboardPage() {
             </Link>
           </div>
         ) : (
-          <ul className="space-y-2 max-w-2xl">
+          <ul className="space-y-2">
             {activeOrders.map((o) => (
               <li key={o.id} className="neo-card p-4 flex justify-between items-center">
                 <div>
                   <p className="text-foreground text-sm font-medium">{o.listing_title}</p>
                   <p className="text-xs text-muted-foreground">
-                    From {o.farm_name} · {o.reference} · {iso(o.created_at).slice(0, 10)}
+                    From {o.farm_name} · {o.reference} · {formatDate(o.created_at)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-foreground">${num(o.total_amount).toFixed(2)}</p>
-                  <p className="text-xs text-accent">{o.status}</p>
+                  <div className="mt-1"><OrderStatusBadge status={o.status} /></div>
                 </div>
               </li>
             ))}

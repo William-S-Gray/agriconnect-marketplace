@@ -23,7 +23,7 @@
     "@fontsource-variable/nunito": "^5.3.0",
     "@fontsource-variable/playfair-display": "^5.3.0",
     "@neondatabase/serverless": "^1.2.0",
-    "@node-rs/argon2": "^2.2.1",
+    "@node-rs/argon2": "^2.2.2",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -55,7 +55,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "ioredis": "^6.0.0",
     "lucide-react": "^0.462.0",
@@ -71,12 +70,11 @@
     "recharts": "^2.15.4",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
-    "vaul": "^1.1.2",
     "zod": "^4.6.5",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.16.5",
@@ -87,18 +85,18 @@
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^15.15.0",
-    "postcss": "^8.5.28",
+    "globals": "^17.13.0",
+    "postcss": "^8.5.29",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.0",
+    "typescript-eslint": "^8.71.1",
     "vitest": "^4.1.11"
   },
   "overrides": {
     "next": {
-      "postcss": "^8.5.26"
+      "postcss": "^8.5.29"
     }
   }
 }

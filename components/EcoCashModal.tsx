@@ -32,16 +32,18 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
 
-  // Reset state when the modal opens. The order reference is the server's,
-  // shown by the caller once checkout succeeds; this modal no longer invents one.
-  useEffect(() => {
+  // Reset state when the modal opens, during render rather than in an effect
+  // (https://react.dev/learn/you-might-not-need-an-effect). The order
+  // reference is the server's, shown by the caller once checkout succeeds.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setStep('confirm');
-  }, [open]);
+  }
 
   // Processing countdown
   useEffect(() => {
     if (step !== 'processing') return;
-    setCountdown(3);
     const interval = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -112,7 +114,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               </Button>
               <Button
                 className="flex-1 btn-gold"
-                onClick={() => setStep('processing')}
+                onClick={() => { setCountdown(3); setStep('processing'); }}
               >
                 Authorise Payment
               </Button>

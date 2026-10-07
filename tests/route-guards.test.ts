@@ -25,6 +25,8 @@ const PUBLIC_MUTATIONS = new Set([
   'auth/password/forgot/route.ts',
   'auth/password/reset/route.ts',
   'auth/mfa/verify/route.ts', // half-authenticated by design; checks getSession itself
+  'auth/verify/route.ts', // the emailed token is the credential
+  'auth/verify/resend/route.ts',
 ]);
 
 const files = routeFiles(API).map((f) => ({ rel: relative(API, f), src: readFileSync(f, 'utf8') }));

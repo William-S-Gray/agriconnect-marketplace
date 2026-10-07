@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { ResendVerification } from '@/components/ResendVerification';
 
 /**
  * Login form.
@@ -24,6 +25,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unverified, setUnverified] = useState(false);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -49,6 +51,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         // The server returns one generic message for unknown-account and
         // wrong-password; it is shown verbatim rather than elaborated on.
         setError(data.error ?? 'Invalid email or password.');
+        setUnverified(data.code === 'email_unverified');
         return;
       }
 
@@ -128,6 +131,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         {error && (
           <p role="alert" className="text-destructive text-sm">{error}</p>
         )}
+        {unverified && <ResendVerification email={email} />}
 
         <Button
           type="submit"

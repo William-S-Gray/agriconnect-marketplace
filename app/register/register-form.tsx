@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Sprout, ShoppingBag } from 'lucide-react';
+import { Loader2, MailCheck, Sprout, ShoppingBag } from 'lucide-react';
+import { ResendVerification } from '@/components/ResendVerification';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ export function RegisterForm({ initialRole = 'buyer' }: { initialRole?: 'farmer'
   const [role, setRole] = useState<'farmer' | 'buyer'>(initialRole);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,9 +66,12 @@ export function RegisterForm({ initialRole = 'buyer' }: { initialRole?: 'farmer'
         return;
       }
 
-      // `created: false` means the email was already registered. The server
-      // returns the same shape either way so this page cannot be used to
-      // discover which emails exist; both paths land on the same message.
+      // With email configured the server always answers `verify: true`, new
+      // address or not, and the next step happens in the inbox.
+      if (data.verify) {
+        setSentTo(String(payload.email ?? ''));
+        return;
+      }
       if (!data.created) {
         toast.success('Check your email to continue.');
         router.push('/login');
@@ -81,6 +86,20 @@ export function RegisterForm({ initialRole = 'buyer' }: { initialRole?: 'farmer'
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (sentTo) {
+    return (
+      <div className="w-full max-w-md neo-card p-6 md:p-8 space-y-4 text-center">
+        <MailCheck className="h-10 w-10 text-primary mx-auto" aria-hidden />
+        <h1 className="font-heading text-2xl font-bold text-foreground">Check your email</h1>
+        <p className="text-sm text-muted-foreground">
+          We sent a link to <span className="font-semibold text-foreground">{sentTo}</span>. Open it to
+          confirm your address and finish creating your account.
+        </p>
+        <ResendVerification email={sentTo} />
+      </div>
+    );
   }
 
   return (

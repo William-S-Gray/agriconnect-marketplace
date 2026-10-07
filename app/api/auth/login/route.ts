@@ -54,11 +54,11 @@ export async function POST(request: Request) {
   if (charge.limited) return tooManyRequests(charge.retryAfterSeconds);
 
   const rows = (await sql`
-    SELECT id, email, password_hash, role, status, mfa_enabled, session_epoch
+    SELECT id, email, password_hash, role, status, mfa_enabled, session_epoch, email_verified_at
       FROM users
      WHERE email = ${email}
      LIMIT 1
-  `) as UserRow[];
+  `) as (UserRow & { email_verified_at: Date | null })[];
 
   const user = rows[0];
 
@@ -76,6 +76,14 @@ export async function POST(request: Request) {
   if (user.status === 'SUSPENDED') {
     return NextResponse.json(
       { error: 'This account is not available.', code: 'account_unavailable' },
+      { status: 403 },
+    );
+  }
+
+  // Only reachable with the right password, so it reveals nothing new.
+  if (!user.email_verified_at) {
+    return NextResponse.json(
+      { error: 'Confirm your email to finish setting up your account.', code: 'email_unverified' },
       { status: 403 },
     );
   }

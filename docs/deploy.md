@@ -2,7 +2,13 @@
 
 Checklist for taking a release to production. The app is a Next.js server
 plus Postgres (Neon) and, optionally, Redis. It ships on **Vercel** (Node 22,
-Fluid Compute); `vercel.json` holds the cron schedule.
+Fluid Compute); `vercel.json` holds the cron schedule and pins functions to
+`fra1` (Frankfurt), next to the database and the closest region to Zimbabwe.
+
+**Current setup:** Vercel project `agriconnect-marketplace`, connected to this
+GitHub repo. Neon project `agriconnect-production` (`lingering-block-14622199`,
+aws-eu-central-1): branch `main` is production, branch `preview` serves preview
+deployments with seeded demo data.
 
 ## First-time Vercel setup
 

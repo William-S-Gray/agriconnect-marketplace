@@ -10,6 +10,9 @@ import {
   clientIp,
 } from '@/lib/rate-limit';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { env } from '@/lib/env';
+import { mailConfigured, sendMail, verifyEmailMessage, alreadyRegisteredMessage } from '@/lib/mail';
+import { issueVerificationToken } from '@/lib/email-verification';
 
 export const runtime = 'nodejs';
 
@@ -75,6 +78,12 @@ export async function POST(request: Request) {
   }
   const data = parsed.data;
 
+  // Per-address limit as well as per-IP, applied before the outcome is known,
+  // so repeated sign-ups cannot be used to flood someone's inbox and the
+  // throttle behaves the same for new and existing addresses.
+  const addressLimit = await checkRateLimit('register', { identifier: data.email });
+  if (addressLimit.limited) return tooManyRequests(addressLimit.retryAfterSeconds);
+
   // Server-side password strength. The client mirrors this for live feedback,
   // but this check is the authority.
   const strength = validatePassword(data.password, {
@@ -128,17 +137,36 @@ export async function POST(request: Request) {
 
   const user = inserted[0];
 
+  /**
+   * With email configured, the account must be verified before first sign-in,
+   * and the browser gets the same "check your email" answer whether or not the
+   * address was already registered — the owner of an existing account is told
+   * by email instead. That is what stops registration revealing which
+   * addresses exist.
+   *
+   * Without email there is no way to verify, so registration keeps its old
+   * behaviour (sign straight in) rather than making sign-up impossible; the
+   * mail_not_configured log line says so.
+   */
+  if (mailConfigured()) {
+    if (user) {
+      const token = await issueVerificationToken(user.id);
+      await sendMail(verifyEmailMessage(user.email, `${env.APP_URL}/verify-email?token=${token}`));
+      await recordAttempt('register', { identifier: data.email, ip, succeeded: true });
+    } else {
+      await sendMail(alreadyRegisteredMessage(data.email, env.APP_URL));
+      await recordAttempt('register', { identifier: data.email, ip, succeeded: false });
+    }
+    return NextResponse.json({ ok: true, verify: true });
+  }
+
   if (!user) {
-    // Email already registered. NOTE: this is distinguishable from a real
-    // signup — success sets a session cookie and this does not — so register
-    // DOES reveal whether an email is registered. Closing that needs an
-    // email-verification step (no mail provider is integrated yet); until
-    // then the per-IP register limit is the only brake on enumeration.
     await recordAttempt('register', { identifier: data.email, ip, succeeded: false });
     return NextResponse.json({ ok: true, created: false });
   }
 
   await recordAttempt('register', { identifier: data.email, ip, succeeded: true });
+  await sql`UPDATE users SET email_verified_at = now() WHERE id = ${user.id}`;
 
   // New accounts have no MFA yet, so the session is fully authenticated.
   await createSession(user, {

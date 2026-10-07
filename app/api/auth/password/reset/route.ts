@@ -82,6 +82,8 @@ export async function POST(request: Request) {
       UPDATE users
          SET password_hash = ${await hashPassword(password)},
              session_epoch = session_epoch + 1,
+             -- The reset link was delivered to this address, which proves it.
+             email_verified_at = COALESCE(email_verified_at, now()),
              password_changed_at = now(),
              updated_at = now()
        WHERE id IN (SELECT user_id FROM t)

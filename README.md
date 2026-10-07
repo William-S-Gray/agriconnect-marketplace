@@ -54,6 +54,8 @@ Copy `.env.example` to `.env.local` and fill it in. Every variable is server-onl
 | `APP_URL` | In production | Public origin, no trailing slash. Used for CSRF origin checks, reset links and `og:image` URLs. |
 | `SIMULATED_PAYMENTS` | No | `true` lets checkout record orders as paid into escrow without a payment provider (the demo). Otherwise checkout returns 503. |
 | `REDIS_URL` | No | Redis for auth rate-limit counters. Unset, counters live in Postgres. If set but unreachable, the limiter falls back rather than failing open. |
+| `SMTP_URL` | Recommended | SMTP for password-reset and sign-up confirmation emails (any provider). Set, new accounts confirm their email before first sign-in. Unset, password reset cannot send and sign-up skips confirmation. |
+| `MAIL_FROM` | No | Sender address, e.g. `AgriConnect <no-reply@agriconnect.co.zw>`. |
 | `TEST_DATABASE_URL` | No | Database for `npm test`; the suite writes and deletes rows. Falls back to `DATABASE_URL`. |
 | `ANOMALY_TRUSTED_PROXY` | No | `vercel` or `cloudflare` when deployed behind one; enables impossible-travel detection from that edge's geo headers. Unset, travel detection is inert. |
 

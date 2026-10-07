@@ -1,8 +1,255 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;800&display=swap')
+layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tailwind 4's preflight no longer gives buttons a pointer cursor. Restored,
+ * as the v4 upgrade guide suggests, so every clickable control still signals it.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme {
+  /*
+   * Default-palette colours this app uses, pinned to their Tailwind 3 values.
+   * v4 re-derived the palette in oklch; amber-500, the demo banner and warning
+   * colour, moved visibly (#f59e0b -> ~#fd9900). Pinning keeps the brand as
+   * designed. Add a line here when a new palette colour is introduced.
+   */
+  --color-amber-500: #f59e0b;
+  --color-amber-950: #451a03;
+  --color-green-100: #dcfce7;
+  --color-green-400: #4ade80;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  --color-green-900: #14532d;
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-900: #7f1d1d;
+  --color-gray-200: #e5e7eb;
+
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: Nunito, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-dark: hsl(var(--primary-dark));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-dark: hsl(var(--accent-dark));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-earth: hsl(var(--earth));
+  --color-earth-foreground: hsl(var(--earth-foreground));
+
+  --color-fresh: hsl(var(--fresh));
+  --color-fresh-foreground: hsl(var(--fresh-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-green-light: hsl(var(--green-light));
+  --color-surface: hsl(var(--surface));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility neo-card {
+  /* Neomorphic card */
+  @apply bg-card rounded-2xl;
+  box-shadow: var(--neo-shadow);
+  border: none;
+  &:hover {
+    box-shadow: var(--neo-shadow-hover);
+  }
+}
+
+@utility neo-flat {
+  /* Neomorphic flat (subtle) */
+  @apply bg-card rounded-xl;
+  box-shadow: var(--neo-shadow-sm);
+}
+
+@utility neo-inset {
+  /* Neomorphic inset (pressed) */
+  @apply bg-background rounded-xl;
+  box-shadow: var(--neo-shadow-inset);
+}
+
+@utility neo-btn {
+  /* Neomorphic button */
+  @apply rounded-xl font-semibold transition-all duration-200 active:scale-[0.98];
+  box-shadow: var(--neo-shadow-sm);
+  &:hover {
+    box-shadow: var(--neo-shadow);
+  }
+  &:active {
+    box-shadow: var(--neo-shadow-inset);
+  }
+}
+
+@utility card-produce {
+  @apply bg-card rounded-2xl overflow-hidden transition-all duration-300;
+  box-shadow: var(--neo-shadow);
+  border: none;
+  &:hover {
+    box-shadow: var(--neo-shadow-hover);
+    transform: translateY(-4px);
+  }
+}
+
+@utility badge-status {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+}
+
+@utility badge-in-season {
+  @apply badge-status bg-green-light text-fresh;
+}
+
+@utility badge-limited {
+  @apply badge-status bg-warning/10 text-warning;
+}
+
+@utility badge-sold-out {
+  @apply badge-status bg-destructive/10 text-destructive;
+}
+
+@utility badge-organic {
+  @apply badge-status bg-green-light text-primary;
+}
+
+@utility badge-verified {
+  @apply badge-status bg-green-light text-primary;
+}
+
+@utility badge-pending {
+  @apply badge-status bg-accent/10 text-accent;
+}
+
+@utility price-display {
+  @apply font-mono text-accent font-bold;
+}
+
+@utility hero-gradient {
+  background: var(--gradient-hero);
+}
+
+@utility btn-gold {
+  background: var(--gradient-gold);
+  @apply text-accent-foreground font-semibold rounded-xl px-6 py-3 transition-all hover:opacity-90;
+  box-shadow: var(--neo-shadow-sm);
+  &:hover {
+    box-shadow: var(--neo-shadow);
+  }
+}
 
 @layer base {
   :root {
@@ -115,87 +362,5 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
-  }
-}
-
-@layer components {
-  /* Neomorphic card */
-  .neo-card {
-    @apply bg-card rounded-2xl;
-    box-shadow: var(--neo-shadow);
-    border: none;
-  }
-  .neo-card:hover {
-    box-shadow: var(--neo-shadow-hover);
-  }
-
-  /* Neomorphic flat (subtle) */
-  .neo-flat {
-    @apply bg-card rounded-xl;
-    box-shadow: var(--neo-shadow-sm);
-  }
-
-  /* Neomorphic inset (pressed) */
-  .neo-inset {
-    @apply bg-background rounded-xl;
-    box-shadow: var(--neo-shadow-inset);
-  }
-
-  /* Neomorphic button */
-  .neo-btn {
-    @apply rounded-xl font-semibold transition-all duration-200 active:scale-[0.98];
-    box-shadow: var(--neo-shadow-sm);
-  }
-  .neo-btn:hover {
-    box-shadow: var(--neo-shadow);
-  }
-  .neo-btn:active {
-    box-shadow: var(--neo-shadow-inset);
-  }
-
-  .card-produce {
-    @apply bg-card rounded-2xl overflow-hidden transition-all duration-300;
-    box-shadow: var(--neo-shadow);
-    border: none;
-  }
-  .card-produce:hover {
-    box-shadow: var(--neo-shadow-hover);
-    transform: translateY(-4px);
-  }
-
-  .badge-status {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
-  }
-  .badge-in-season {
-    @apply badge-status bg-green-light text-fresh;
-  }
-  .badge-limited {
-    @apply badge-status bg-warning/10 text-warning;
-  }
-  .badge-sold-out {
-    @apply badge-status bg-destructive/10 text-destructive;
-  }
-  .badge-organic {
-    @apply badge-status bg-green-light text-primary;
-  }
-  .badge-verified {
-    @apply badge-status bg-green-light text-primary;
-  }
-  .badge-pending {
-    @apply badge-status bg-accent/10 text-accent;
-  }
-  .price-display {
-    @apply font-mono text-accent font-bold;
-  }
-  .hero-gradient {
-    background: var(--gradient-hero);
-  }
-  .btn-gold {
-    background: var(--gradient-gold);
-    @apply text-accent-foreground font-semibold rounded-xl px-6 py-3 transition-all hover:opacity-90;
-    box-shadow: var(--neo-shadow-sm);
-  }
-  .btn-gold:hover {
-    box-shadow: var(--neo-shadow);
   }
 }

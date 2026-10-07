@@ -54,7 +54,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ id: s
         </Link>
 
         <div className="grid gap-8 md:grid-cols-2 mt-6">
-          <div className="neo-card rounded-2xl aspect-[4/3] flex items-center justify-center text-7xl">
+          <div className="neo-card rounded-2xl aspect-4/3 flex items-center justify-center text-7xl">
             {categoryEmoji(listing.category)}
           </div>
 

@@ -65,7 +65,7 @@ export default async function FarmerOrdersPage() {
                   {o.notes && <p className="text-xs text-muted-foreground mt-1">Note: {o.notes}</p>}
                 </div>
                 <div className="sm:text-right">
-                  <p className="font-mono font-bold text-foreground">
+                  <p className="tabular-nums font-bold text-foreground">
                     ${num(o.total_amount).toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground">

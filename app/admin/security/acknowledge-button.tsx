@@ -37,7 +37,7 @@ export function AcknowledgeButton({ eventId }: { eventId: string }) {
     <Button
       size="sm"
       variant="outline"
-      className="neo-flat border-none text-xs shrink-0"
+      className="neo-flat text-xs shrink-0"
       onClick={acknowledge}
       disabled={busy}
     >

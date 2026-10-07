@@ -54,73 +54,83 @@ export default async function HomePage() {
       <SiteNav />
 
       <main className="flex-1">
-        <section className="container mx-auto px-4 pt-12 pb-10 md:pt-16">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold text-foreground max-w-2xl leading-tight">
-            Fresh from Zimbabwe&apos;s farms
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg mt-4 max-w-xl">
-            Buy direct from verified farmers — better prices, EcoCash payments held in
-            escrow until you confirm delivery, and no middlemen.
-          </p>
+        <section className="border-b border-border bg-secondary/40">
+          <div className="container mx-auto px-4 py-12 md:py-20 grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold text-primary mb-3">Zimbabwe&apos;s farm-to-market marketplace</p>
+              <h1 className="font-heading text-4xl md:text-5xl font-bold text-foreground leading-tight">
+                Fresh from Zimbabwe&apos;s farms
+              </h1>
+              <p className="text-muted-foreground text-base md:text-lg mt-4 max-w-xl">
+                Buy direct from verified farmers, with better prices and no middlemen.
+              </p>
 
-          <div className="flex flex-wrap gap-3 mt-8">
-            <Link href="/browse">
-              <Button size="lg" className="neo-btn bg-primary text-primary-foreground">
-                Browse produce <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
-              </Button>
-            </Link>
-            {session ? (
-              <Link href={homeForRole(session.role)}>
-                <Button size="lg" variant="outline" className="neo-flat border-none">
-                  My dashboard
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/register?role=farmer">
-                <Button size="lg" variant="outline" className="neo-flat border-none">
-                  Sell your produce
-                </Button>
-              </Link>
-            )}
-          </div>
+              <div className="flex flex-wrap gap-3 mt-8">
+                <Link href="/browse">
+                  <Button size="lg" className="neo-btn bg-primary text-primary-foreground">
+                    Browse produce <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
+                  </Button>
+                </Link>
+                {session ? (
+                  <Link href={homeForRole(session.role)}>
+                    <Button size="lg" variant="outline" className="neo-flat">My dashboard</Button>
+                  </Link>
+                ) : (
+                  <Link href="/register?role=farmer">
+                    <Button size="lg" variant="outline" className="neo-flat">Sell your produce</Button>
+                  </Link>
+                )}
+              </div>
 
-          <div className="grid grid-cols-3 gap-3 md:gap-4 mt-10 max-w-xl">
-            <Stat label="Verified farmers" value={stats?.farmers ?? '0'} icon={ShieldCheck} />
-            <Stat label="Active listings" value={stats?.listings ?? '0'} icon={Sprout} />
-            <Stat label="Provinces" value={stats?.provinces ?? '0'} icon={MapPin} />
+              {/* Counts only once there is something to count. */}
+              {Number(stats?.listings ?? 0) > 0 && (
+                <dl className="flex flex-wrap gap-x-8 gap-y-3 mt-10">
+                  <Stat label="Verified farmers" value={stats!.farmers} />
+                  <Stat label="Active listings" value={stats!.listings} />
+                  <Stat label="Provinces" value={stats!.provinces} />
+                </dl>
+              )}
+            </div>
+
+            <ul className="neo-card divide-y divide-border">
+              <Feature icon={ShieldCheck} title="Verified farmers">
+                Every farm is checked by AgriConnect before its produce goes on sale.
+              </Feature>
+              <Feature icon={Lock} title="Payment held in escrow">
+                Your payment is released to the farmer only after you confirm delivery.
+              </Feature>
+              <Feature icon={MapPin} title="Across Zimbabwe">
+                Buy close to home for pickup, or arrange delivery from further afield.
+              </Feature>
+            </ul>
           </div>
         </section>
 
-        <section className="container mx-auto px-4 pb-6">
+        <section className="container mx-auto px-4 py-12">
           <div className="flex items-end justify-between gap-4 mb-6">
             <h2 className="font-heading text-2xl font-bold text-foreground">In season now</h2>
-            <Link href="/browse" className="text-sm text-primary hover:underline whitespace-nowrap">
-              View all →
-            </Link>
+            {listings.length > 0 && (
+              <Link href="/browse" className="text-sm font-medium text-primary hover:underline whitespace-nowrap">
+                View all →
+              </Link>
+            )}
           </div>
           {listings.length === 0 ? (
-            <p className="neo-card p-6 text-muted-foreground">
-              No listings yet. Check back soon — farmers add new produce every week.
-            </p>
+            <div className="neo-card p-10 text-center">
+              <Sprout className="h-8 w-8 text-primary mx-auto mb-3" aria-hidden />
+              <p className="font-medium text-foreground">No produce listed yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Farmers add new produce every week. Are you a farmer?
+              </p>
+              <Link href="/register?role=farmer" className="inline-block mt-5">
+                <Button className="neo-btn bg-primary text-primary-foreground">List your produce</Button>
+              </Link>
+            </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {listings.map((l) => <ProduceCard key={l.id} listing={l} />)}
             </div>
           )}
-        </section>
-
-        <section className="container mx-auto px-4 py-10">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Feature icon={ShieldCheck} title="Verified farmers">
-              Every farm is checked by AgriConnect before its produce goes on sale.
-            </Feature>
-            <Feature icon={Lock} title="Payment held in escrow">
-              Your EcoCash payment is released to the farmer only after you confirm delivery.
-            </Feature>
-            <Feature icon={MapPin} title="Across Zimbabwe">
-              Buy close to home for pickup, or arrange delivery from further afield.
-            </Feature>
-          </div>
         </section>
       </main>
 
@@ -129,20 +139,11 @@ export default async function HomePage() {
   );
 }
 
-function Stat({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="neo-card p-4 md:p-5">
-      <Icon className="h-5 w-5 text-primary mb-2" />
-      <p className="font-mono text-2xl font-bold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{label}</p>
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-2xl font-bold text-foreground tabular-nums">{value}</dd>
     </div>
   );
 }
@@ -157,10 +158,14 @@ function Feature({
   children: React.ReactNode;
 }) {
   return (
-    <div className="neo-flat rounded-2xl p-5">
-      <Icon className="h-6 w-6 text-primary mb-3" />
-      <h3 className="font-heading font-semibold text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground mt-1">{children}</p>
-    </div>
+    <li className="flex gap-4 p-5">
+      <span className="h-10 w-10 shrink-0 rounded-lg bg-secondary flex items-center justify-center">
+        <Icon className="h-5 w-5 text-primary" />
+      </span>
+      <div>
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">{children}</p>
+      </div>
+    </li>
   );
 }

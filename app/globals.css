@@ -166,47 +166,35 @@
   }
 }
 
+/*
+ * Surface styles used across the app. The neo-* names date from an earlier
+ * neumorphic design; they now render flat surfaces with a hairline border.
+ */
 @utility neo-card {
-  /* Neomorphic card */
-  @apply bg-card rounded-2xl;
+  @apply bg-card rounded-xl border border-border;
   box-shadow: var(--neo-shadow);
-  border: none;
-  &:hover {
-    box-shadow: var(--neo-shadow-hover);
-  }
 }
 
 @utility neo-flat {
-  /* Neomorphic flat (subtle) */
-  @apply bg-card rounded-xl;
-  box-shadow: var(--neo-shadow-sm);
+  @apply bg-card rounded-lg border border-border;
 }
 
+/* Form fields. */
 @utility neo-inset {
-  /* Neomorphic inset (pressed) */
-  @apply bg-background rounded-xl;
-  box-shadow: var(--neo-shadow-inset);
+  @apply bg-card rounded-lg border border-input;
 }
 
 @utility neo-btn {
-  /* Neomorphic button */
-  @apply rounded-xl font-semibold transition-all duration-200 active:scale-[0.98];
+  @apply rounded-lg font-semibold transition-colors duration-150;
   box-shadow: var(--neo-shadow-sm);
-  &:hover {
-    box-shadow: var(--neo-shadow);
-  }
-  &:active {
-    box-shadow: var(--neo-shadow-inset);
-  }
 }
 
 @utility card-produce {
-  @apply bg-card rounded-2xl overflow-hidden transition-all duration-300;
+  @apply bg-card rounded-xl overflow-hidden border border-border transition-all duration-200;
   box-shadow: var(--neo-shadow);
-  border: none;
   &:hover {
     box-shadow: var(--neo-shadow-hover);
-    transform: translateY(-4px);
+    transform: translateY(-2px);
   }
 }
 
@@ -239,7 +227,7 @@
 }
 
 @utility price-display {
-  @apply font-mono text-accent font-bold;
+  @apply font-bold text-foreground tabular-nums;
 }
 
 @utility hero-gradient {
@@ -257,28 +245,28 @@
 
 @layer base {
   :root {
-    --background: 100 20% 95%;
+    --background: 90 20% 98%;
     --foreground: 240 25% 13%;
-    --card: 100 15% 92%;
+    --card: 0 0% 100%;
     --card-foreground: 240 25% 13%;
-    --popover: 100 15% 92%;
+    --popover: 0 0% 100%;
     --popover-foreground: 240 25% 13%;
     --primary: 153 41% 30%;
     --primary-foreground: 0 0% 100%;
     --primary-dark: 153 45% 18%;
-    --secondary: 100 12% 88%;
+    --secondary: 100 14% 94%;
     --secondary-foreground: 153 41% 30%;
-    --muted: 100 10% 89%;
+    --muted: 100 12% 94%;
     --muted-foreground: 220 9% 40%;
     --accent: 38 91% 55%;
     --accent-foreground: 0 0% 100%;
     --accent-dark: 33 78% 47%;
     --destructive: 2 72% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 100 10% 85%;
-    --input: 100 10% 85%;
+    --border: 100 10% 88%;
+    --input: 100 8% 84%;
     --ring: 153 41% 30%;
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
     /* Custom AgriConnect tokens */
     --earth: 20 53% 28%;
@@ -288,13 +276,13 @@
     --warning: 28 100% 49%;
     --warning-foreground: 0 0% 100%;
     --green-light: 135 52% 88%;
-    --surface: 100 20% 95%;
+    --surface: 90 20% 98%;
 
-    /* Neomorphism shadows — light mode */
-    --neo-shadow: 6px 6px 12px hsl(100 10% 82%), -6px -6px 12px hsl(0 0% 100%);
-    --neo-shadow-sm: 3px 3px 6px hsl(100 10% 82%), -3px -3px 6px hsl(0 0% 100%);
-    --neo-shadow-inset: inset 3px 3px 6px hsl(100 10% 82%), inset -3px -3px 6px hsl(0 0% 100%);
-    --neo-shadow-hover: 8px 8px 16px hsl(100 10% 80%), -8px -8px 16px hsl(0 0% 100%);
+    /* Elevation — light mode. (The --neo-* names predate the redesign.) */
+    --neo-shadow: 0 1px 2px hsl(150 20% 20% / 0.05), 0 1px 3px hsl(150 20% 20% / 0.06);
+    --neo-shadow-sm: 0 1px 2px hsl(150 20% 20% / 0.05);
+    --neo-shadow-inset: none;
+    --neo-shadow-hover: 0 10px 28px -10px hsl(150 30% 15% / 0.22);
 
     /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(153 45% 18%) 0%, hsl(153 41% 30%) 50%, hsl(152 39% 52%) 100%);
@@ -340,11 +328,11 @@
     --green-light: 153 30% 22%;
     --surface: 220 20% 12%;
 
-    /* Neomorphism shadows — dark mode */
-    --neo-shadow: 6px 6px 12px hsl(220 20% 8%), -6px -6px 12px hsl(220 15% 20%);
-    --neo-shadow-sm: 3px 3px 6px hsl(220 20% 8%), -3px -3px 6px hsl(220 15% 20%);
-    --neo-shadow-inset: inset 3px 3px 6px hsl(220 20% 8%), inset -3px -3px 6px hsl(220 15% 20%);
-    --neo-shadow-hover: 8px 8px 16px hsl(220 20% 6%), -8px -8px 16px hsl(220 15% 22%);
+    /* Elevation — dark mode: borders carry the separation. */
+    --neo-shadow: 0 1px 2px hsl(220 30% 4% / 0.4);
+    --neo-shadow-sm: 0 1px 2px hsl(220 30% 4% / 0.3);
+    --neo-shadow-inset: none;
+    --neo-shadow-hover: 0 10px 28px -10px hsl(220 30% 2% / 0.6);
 
     --sidebar-background: 220 18% 14%;
     --sidebar-foreground: 0 0% 90%;

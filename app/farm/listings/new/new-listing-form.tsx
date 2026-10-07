@@ -80,62 +80,62 @@ export function NewListingForm({
     <form onSubmit={onSubmit} className="neo-card p-6 space-y-5 max-w-2xl" noValidate>
       <div>
         <Label htmlFor="title" className="text-foreground">Title</Label>
-        <Input id="title" name="title" required placeholder="Roma Tomatoes — Chemical Free" className="neo-inset border-none" />
+        <Input id="title" name="title" required placeholder="Roma Tomatoes — Chemical Free" className="neo-inset" />
       </div>
 
       <div>
         <Label htmlFor="description" className="text-foreground">Description</Label>
-        <Textarea id="description" name="description" rows={3} className="neo-inset border-none" />
+        <Textarea id="description" name="description" rows={3} className="neo-inset" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label className="text-foreground">Category</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="neo-inset border-none" aria-label="Category"><SelectValue>{category}</SelectValue></SelectTrigger>
-            <SelectContent className="neo-card border-none">
+            <SelectTrigger className="neo-inset" aria-label="Category"><SelectValue>{category}</SelectValue></SelectTrigger>
+            <SelectContent className="neo-card">
               {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="produce_type" className="text-foreground">Produce type</Label>
-          <Input id="produce_type" name="produce_type" required placeholder="Tomatoes" className="neo-inset border-none" />
+          <Input id="produce_type" name="produce_type" required placeholder="Tomatoes" className="neo-inset" />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="quantity_kg" className="text-foreground">Quantity</Label>
-          <Input id="quantity_kg" name="quantity_kg" type="number" min="1" step="any" required className="neo-inset border-none" />
+          <Input id="quantity_kg" name="quantity_kg" type="number" min="1" step="any" required className="neo-inset" />
         </div>
         <div>
           <Label className="text-foreground">Unit</Label>
           <Select value={unit} onValueChange={setUnit}>
-            <SelectTrigger className="neo-inset border-none" aria-label="Unit"><SelectValue>{unit}</SelectValue></SelectTrigger>
-            <SelectContent className="neo-card border-none">
+            <SelectTrigger className="neo-inset" aria-label="Unit"><SelectValue>{unit}</SelectValue></SelectTrigger>
+            <SelectContent className="neo-card">
               {units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="price_per_unit" className="text-foreground">Price per unit (USD)</Label>
-          <Input id="price_per_unit" name="price_per_unit" type="number" min="0" step="0.01" required className="neo-inset border-none" />
+          <Input id="price_per_unit" name="price_per_unit" type="number" min="0" step="0.01" required className="neo-inset" />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="min_order_qty" className="text-foreground">Minimum order</Label>
-          <Input id="min_order_qty" name="min_order_qty" type="number" min="1" step="any" defaultValue={1} className="neo-inset border-none" />
+          <Input id="min_order_qty" name="min_order_qty" type="number" min="1" step="any" defaultValue={1} className="neo-inset" />
         </div>
         <div>
           <Label htmlFor="harvest_date" className="text-foreground">Harvest date</Label>
-          <Input id="harvest_date" name="harvest_date" type="date" className="neo-inset border-none" />
+          <Input id="harvest_date" name="harvest_date" type="date" className="neo-inset" />
         </div>
         <div>
           <Label htmlFor="available_until" className="text-foreground">Available until</Label>
-          <Input id="available_until" name="available_until" type="date" className="neo-inset border-none" />
+          <Input id="available_until" name="available_until" type="date" className="neo-inset" />
         </div>
       </div>
 
@@ -143,15 +143,15 @@ export function NewListingForm({
         <div>
           <Label className="text-foreground">Province</Label>
           <Select value={province} onValueChange={setProvince}>
-            <SelectTrigger className="neo-inset border-none" aria-label="Province"><SelectValue>{province}</SelectValue></SelectTrigger>
-            <SelectContent className="neo-card border-none">
+            <SelectTrigger className="neo-inset" aria-label="Province"><SelectValue>{province}</SelectValue></SelectTrigger>
+            <SelectContent className="neo-card">
               {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="district" className="text-foreground">District</Label>
-          <Input id="district" name="district" defaultValue={defaults.district} className="neo-inset border-none" />
+          <Input id="district" name="district" defaultValue={defaults.district} className="neo-inset" />
         </div>
       </div>
 

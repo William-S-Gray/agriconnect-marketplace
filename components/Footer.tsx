@@ -1,10 +1,17 @@
 import { Leaf, Mail, Phone } from 'lucide-react';
 import Link from 'next/link';
 
+/**
+ * Contact details render only when configured (SUPPORT_EMAIL, SUPPORT_PHONE
+ * in the deployment's environment) — a placeholder number on a live site is
+ * worse than none.
+ */
 export function Footer() {
+  const email = process.env.SUPPORT_EMAIL;
+  const phone = process.env.SUPPORT_PHONE;
   return (
-    <footer className="bg-card mt-20">
-      <div className="neo-flat mx-0 rounded-none">
+    <footer className="bg-card border-t border-border mt-20">
+      <div>
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -32,15 +39,20 @@ export function Footer() {
               </div>
             </div>
             <div>
-              <h4 className="font-heading font-semibold mb-3 text-foreground">Support</h4>
+              <h4 className="font-heading font-semibold mb-3 text-foreground">Account</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <a href="tel:+263242000000" className="flex items-center gap-2 hover:text-foreground transition-colors">
-                  <Phone className="h-4 w-4 shrink-0" aria-hidden /> +263 242 000 000
-                </a>
-                <a href="mailto:support@agriconnect.co.zw" className="flex items-center gap-2 hover:text-foreground transition-colors">
-                  <Mail className="h-4 w-4 shrink-0" aria-hidden /> support@agriconnect.co.zw
-                </a>
-                <p>EcoCash secured payments</p>
+                <Link href="/forgot-password" className="block hover:text-foreground transition-colors">Forgot password</Link>
+                <Link href="/settings/security" className="block hover:text-foreground transition-colors">Account security</Link>
+                {phone && (
+                  <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-foreground transition-colors">
+                    <Phone className="h-4 w-4 shrink-0" aria-hidden /> {phone}
+                  </a>
+                )}
+                {email && (
+                  <a href={`mailto:${email}`} className="flex items-center gap-2 hover:text-foreground transition-colors">
+                    <Mail className="h-4 w-4 shrink-0" aria-hidden /> {email}
+                  </a>
+                )}
               </div>
             </div>
           </div>

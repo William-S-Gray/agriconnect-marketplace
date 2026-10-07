@@ -57,30 +57,30 @@ export function BrowseFilters({
           name="q"
           defaultValue={initial.q}
           placeholder="Search produce…"
-          className="neo-inset border-none pl-9"
+          className="neo-inset pl-9"
           aria-label="Search produce"
         />
       </form>
 
       <Select value={initial.province} onValueChange={(v) => update('province', v)}>
-        <SelectTrigger className="w-44 neo-flat border-none" aria-label="Province"><SelectValue>{provinceLabel}</SelectValue></SelectTrigger>
-        <SelectContent className="neo-card border-none">
+        <SelectTrigger className="w-44 neo-flat" aria-label="Province"><SelectValue>{provinceLabel}</SelectValue></SelectTrigger>
+        <SelectContent className="neo-card">
           <SelectItem value="all">All Provinces</SelectItem>
           {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
         </SelectContent>
       </Select>
 
       <Select value={initial.category} onValueChange={(v) => update('category', v)}>
-        <SelectTrigger className="w-44 neo-flat border-none" aria-label="Category"><SelectValue>{categoryLabel}</SelectValue></SelectTrigger>
-        <SelectContent className="neo-card border-none">
+        <SelectTrigger className="w-44 neo-flat" aria-label="Category"><SelectValue>{categoryLabel}</SelectValue></SelectTrigger>
+        <SelectContent className="neo-card">
           <SelectItem value="all">All Categories</SelectItem>
           {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
         </SelectContent>
       </Select>
 
       <Select value={initial.sort} onValueChange={(v) => update('sort', v)}>
-        <SelectTrigger className="w-48 neo-flat border-none" aria-label="Sort listings"><SelectValue>{SORT_LABELS[initial.sort] ?? SORT_LABELS.newest}</SelectValue></SelectTrigger>
-        <SelectContent className="neo-card border-none">
+        <SelectTrigger className="w-48 neo-flat" aria-label="Sort listings"><SelectValue>{SORT_LABELS[initial.sort] ?? SORT_LABELS.newest}</SelectValue></SelectTrigger>
+        <SelectContent className="neo-card">
           <SelectItem value="newest">Newest first</SelectItem>
           <SelectItem value="price_asc">Price: low to high</SelectItem>
           <SelectItem value="price_desc">Price: high to low</SelectItem>

@@ -45,7 +45,7 @@ export function ConfirmEmailButton({ token }: { token: string }) {
       <div>
         <Label htmlFor="password" className="text-foreground">Password</Label>
         <Input id="password" type="password" autoComplete="current-password" required value={password}
-          onChange={(e) => setPassword(e.target.value)} className="neo-inset border-none" />
+          onChange={(e) => setPassword(e.target.value)} className="neo-inset" />
       </div>
       <Button type="submit" disabled={busy || !password} className="w-full neo-btn bg-primary text-primary-foreground">
         {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden /> Confirming…</> : 'Confirm email and sign in'}

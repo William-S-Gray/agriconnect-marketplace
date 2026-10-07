@@ -90,7 +90,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.co.zw"
-            className="neo-inset border-none"
+            className="neo-inset"
           />
         </div>
 
@@ -104,8 +104,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="neo-inset border-none pr-10"
+              className="neo-inset pr-10"
             />
             <button
               type="button"

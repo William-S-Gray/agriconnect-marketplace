@@ -100,13 +100,13 @@ export default async function MarketPricesPage({
                   <tr key={p.id} className={`border-t border-border/30 ${i % 2 ? 'bg-muted/10' : ''}`}>
                     <td className="p-4 font-medium text-foreground text-sm">{p.produce_type}</td>
                     <td className="p-4 text-sm text-muted-foreground">{p.category}</td>
-                    <td className="p-4 text-right font-mono font-bold text-accent">
+                    <td className="p-4 text-right tabular-nums font-bold text-foreground">
                       ${num(p.avg_price).toFixed(2)}
                     </td>
-                    <td className="p-4 text-right font-mono text-sm text-muted-foreground hidden sm:table-cell">
+                    <td className="p-4 text-right tabular-nums text-sm text-muted-foreground hidden sm:table-cell">
                       ${num(p.min_price).toFixed(2)}
                     </td>
-                    <td className="p-4 text-right font-mono text-sm text-muted-foreground hidden sm:table-cell">
+                    <td className="p-4 text-right tabular-nums text-sm text-muted-foreground hidden sm:table-cell">
                       ${num(p.max_price).toFixed(2)}
                     </td>
                     <td className="p-4 text-sm text-muted-foreground hidden md:table-cell">{p.province}</td>

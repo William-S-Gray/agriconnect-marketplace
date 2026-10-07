@@ -61,12 +61,12 @@ export function PasswordSettings() {
         <div>
           <Label htmlFor="current" className="text-foreground">Current password</Label>
           <Input id="current" name="current" type="password" required
-            autoComplete="current-password" className="neo-inset border-none" />
+            autoComplete="current-password" className="neo-inset" />
         </div>
         <div>
           <Label htmlFor="new-password" className="text-foreground">New password</Label>
           <Input id="new-password" name="new" type="password" required
-            autoComplete="new-password" className="neo-inset border-none"
+            autoComplete="new-password" className="neo-inset"
             value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
           <PasswordStrengthMeter password={newPassword} />
           <p className="text-xs text-muted-foreground mt-1">At least 12 characters.</p>
@@ -74,7 +74,7 @@ export function PasswordSettings() {
         <div>
           <Label htmlFor="confirm" className="text-foreground">Confirm new password</Label>
           <Input id="confirm" name="confirm" type="password" required
-            autoComplete="new-password" className="neo-inset border-none" />
+            autoComplete="new-password" className="neo-inset" />
         </div>
 
         {errors.length > 0 && (

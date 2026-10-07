@@ -68,7 +68,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && step !== 'processing') onClose(); }}>
-      <DialogContent className="neo-card border-none max-w-sm mx-4">
+      <DialogContent className="neo-card max-w-sm mx-4">
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
             <span className="text-2xl">📱</span> EcoCash Payment
@@ -81,7 +81,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
             <div className="neo-inset rounded-xl p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Items ({itemCount})</span>
-                <span className="font-mono font-semibold text-foreground">${amount.toFixed(2)}</span>
+                <span className="tabular-nums font-semibold text-foreground">${amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Payable to</span>
@@ -89,7 +89,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               </div>
               <div className="border-t border-border/50 pt-2 flex justify-between">
                 <span className="font-semibold text-foreground">Total</span>
-                <span className="font-mono font-bold text-accent text-lg">${amount.toFixed(2)}</span>
+                <span className="tabular-nums font-bold text-foreground text-lg">${amount.toFixed(2)}</span>
               </div>
             </div>
 
@@ -109,7 +109,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
             </p>
 
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 neo-flat border-none" onClick={onClose}>
+              <Button variant="outline" className="flex-1 neo-flat" onClick={onClose}>
                 Cancel
               </Button>
               <Button
@@ -159,7 +159,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
             <div className="neo-inset rounded-xl p-4 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount Paid</span>
-                <span className="font-mono font-bold text-accent">${amount.toFixed(2)}</span>
+                <span className="tabular-nums font-bold text-foreground">${amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status</span>
@@ -185,7 +185,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               <p className="text-sm text-muted-foreground mt-1">{failure ?? 'Could not connect to EcoCash. Please try again.'}</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 neo-flat border-none" onClick={onClose}>
+              <Button variant="outline" className="flex-1 neo-flat" onClick={onClose}>
                 Cancel
               </Button>
               <Button className="flex-1 btn-gold" onClick={() => setStep('confirm')}>

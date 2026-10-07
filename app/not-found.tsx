@@ -14,7 +14,7 @@ export default function NotFound() {
       </p>
       <div className="flex gap-3 mt-6">
         <Link href="/"><Button className="neo-btn bg-primary text-primary-foreground">Go home</Button></Link>
-        <Link href="/browse"><Button variant="outline" className="neo-flat border-none">Browse produce</Button></Link>
+        <Link href="/browse"><Button variant="outline" className="neo-flat">Browse produce</Button></Link>
       </div>
     </main>
   );

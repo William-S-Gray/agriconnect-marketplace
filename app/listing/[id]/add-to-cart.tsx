@@ -87,24 +87,24 @@ export function AddToCart({
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <Button
-          variant="outline" size="icon" className="h-9 w-9 neo-flat border-none"
+          variant="outline" size="icon" className="h-9 w-9 neo-flat"
           aria-label="Decrease quantity"
           onClick={() => setQuantity((q) => Math.max(minOrder, q - 1))}
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <span className="font-mono text-foreground w-20 text-center">
+        <span className="tabular-nums text-foreground w-20 text-center">
           {quantity} {unit}
         </span>
         <Button
-          variant="outline" size="icon" className="h-9 w-9 neo-flat border-none"
+          variant="outline" size="icon" className="h-9 w-9 neo-flat"
           aria-label="Increase quantity"
           onClick={() => setQuantity((q) => Math.min(maxAvailable, q + 1))}
         >
           <Plus className="h-4 w-4" />
         </Button>
         <span className="text-sm text-muted-foreground ml-auto">
-          Total <strong className="text-foreground font-mono">${total}</strong>
+          Total <strong className="text-foreground tabular-nums">${total}</strong>
         </span>
       </div>
 

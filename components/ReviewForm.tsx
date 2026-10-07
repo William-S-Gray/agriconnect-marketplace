@@ -49,7 +49,7 @@ export function ReviewForm({
       <Button
         size="sm"
         variant="outline"
-        className="neo-flat border-none text-xs mt-4"
+        className="neo-flat text-xs mt-4"
         onClick={() => setOpen(true)}
       >
         <Star className="h-3.5 w-3.5 mr-1" /> Review {farmName}
@@ -117,7 +117,7 @@ export function ReviewForm({
           rows={3}
           maxLength={MAX_COMMENT_LENGTH}
           placeholder={`What was the produce from ${farmName} like?`}
-          className="neo-flat border-none"
+          className="neo-flat"
         />
       </div>
 
@@ -126,7 +126,7 @@ export function ReviewForm({
       <div className="flex gap-2">
         <Button
           type="button" size="sm" variant="outline"
-          className="neo-flat border-none"
+          className="neo-flat"
           onClick={() => { setOpen(false); setError(null); }}
         >
           Cancel

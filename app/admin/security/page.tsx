@@ -175,7 +175,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: 'ale
     <div className="neo-inset rounded-xl p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
-        className={`text-2xl font-bold font-mono ${
+        className={`text-2xl font-bold tabular-nums ${
           tone === 'alert' ? 'text-destructive' : 'text-foreground'
         }`}
       >

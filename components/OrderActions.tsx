@@ -93,17 +93,17 @@ export function OrderActions({
           <Input
             id="reason" name="reason" required maxLength={160}
             placeholder="Quality not as described"
-            className="neo-flat border-none"
+            className="neo-flat"
           />
         </div>
         <div>
           <Label htmlFor="description" className="text-foreground">Details (optional)</Label>
-          <Textarea id="description" name="description" rows={3} className="neo-flat border-none" />
+          <Textarea id="description" name="description" rows={3} className="neo-flat" />
         </div>
         <div className="flex gap-2">
           <Button
             type="button" variant="outline" size="sm"
-            className="neo-flat border-none"
+            className="neo-flat"
             onClick={() => setDisputing(false)}
           >
             Cancel
@@ -129,8 +129,8 @@ export function OrderActions({
             PRIMARY.has(action)
               ? 'neo-btn bg-primary text-primary-foreground text-xs'
               : DESTRUCTIVE.has(action)
-                ? 'neo-flat border-none text-xs text-destructive'
-                : 'neo-flat border-none text-xs'
+                ? 'neo-flat text-xs text-destructive'
+                : 'neo-flat text-xs'
           }
           onClick={() => {
             if (action === 'raise_dispute') { setDisputing(true); return; }

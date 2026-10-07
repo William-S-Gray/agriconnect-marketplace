@@ -113,7 +113,7 @@ export default async function FarmerDashboardPage() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-mono text-foreground">${num(o.total_amount).toFixed(2)}</p>
+                <p className="tabular-nums text-foreground">${num(o.total_amount).toFixed(2)}</p>
                 <div className="mt-1"><OrderStatusBadge status={o.status} /></div>
               </div>
             </li>
@@ -130,7 +130,7 @@ function Stat({
   return (
     <div className="neo-card p-5">
       <Icon className="h-5 w-5 text-primary mb-2" />
-      <p className="font-mono text-xl font-bold text-foreground">{value}</p>
+      <p className="tabular-nums text-xl font-bold text-foreground">{value}</p>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
     </div>
   );

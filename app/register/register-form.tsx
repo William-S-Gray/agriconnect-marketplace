@@ -142,7 +142,7 @@ export function RegisterForm({ initialRole = 'buyer' }: { initialRole?: 'farmer'
                   and the default for every listing it created. */}
               <select
                 id="province" name="province" required defaultValue=""
-                className="flex h-11 w-full rounded-md px-3 text-sm neo-inset border-none bg-transparent text-foreground"
+                className="flex h-11 w-full rounded-md px-3 text-sm neo-inset bg-transparent text-foreground"
               >
                 <option value="" disabled>Choose a province</option>
                 {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -196,7 +196,7 @@ function Field({
   return (
     <div>
       <Label htmlFor={name} className="text-foreground">{label}</Label>
-      <Input id={name} name={name} className="neo-inset border-none" {...props} />
+      <Input id={name} name={name} className="neo-inset" {...props} />
       {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
     </div>
   );

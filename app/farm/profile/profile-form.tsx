@@ -70,8 +70,8 @@ export function ProfileForm({
       <div>
         <Label className="text-foreground">Province</Label>
         <Select value={province} onValueChange={setProvince}>
-          <SelectTrigger className="neo-inset border-none" aria-label="Province"><SelectValue>{province}</SelectValue></SelectTrigger>
-          <SelectContent className="neo-card border-none">
+          <SelectTrigger className="neo-inset" aria-label="Province"><SelectValue>{province}</SelectValue></SelectTrigger>
+          <SelectContent className="neo-card">
             {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -96,7 +96,7 @@ function Field({
   return (
     <div>
       <Label htmlFor={name} className="text-foreground">{label}</Label>
-      <Input id={name} name={name} className="neo-inset border-none" {...props} />
+      <Input id={name} name={name} className="neo-inset" {...props} />
     </div>
   );
 }

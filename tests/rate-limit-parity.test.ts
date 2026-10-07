@@ -15,7 +15,14 @@ const suite = redisUrl ? describe : describe.skip;
 process.env.REDIS_URL = redisUrl ?? '';
 
 const { checkRateLimit, recordAttempt, clearAttempts, chargeAttempt } = await import('@/lib/rate-limit');
-const { getRedis } = await import('@/lib/redis');
+const { getRedis, readyRedis } = await import('@/lib/redis');
+
+// The limiter only uses Redis once it is connected; wait for that, or every
+// test below would quietly exercise the Postgres fallback instead.
+if (redisUrl) {
+  const client = getRedis()!;
+  if (client.status !== 'ready') await new Promise((resolve) => client.once('ready', resolve));
+}
 const { sql, pool } = await import('@/lib/pool');
 
 const suffix = randomUUID().slice(0, 8);
@@ -40,7 +47,7 @@ afterAll(async () => {
 
 suite('rate limiting with Redis configured', () => {
   it('uses Redis, not the fallback', () => {
-    expect(getRedis()).not.toBeNull();
+    expect(readyRedis()).not.toBeNull();
   });
 
   it('allows attempts below the 5-failure allowance', async () => {

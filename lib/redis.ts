@@ -42,6 +42,17 @@ export function getRedis(): Redis | null {
   return globalForRedis.__agriRedis;
 }
 
+/**
+ * The client, but only once it is connected. While it is still connecting —
+ * the first requests after a deploy — commands fail at once (offline queue
+ * off), which was logged as a Redis outage on every start. Callers fall back
+ * to Postgres for those requests without raising the alarm.
+ */
+export function readyRedis(): Redis | null {
+  const client = getRedis();
+  return client && client.status === 'ready' ? client : null;
+}
+
 export function isRedisConfigured(): boolean {
   return Boolean(process.env.REDIS_URL?.trim());
 }

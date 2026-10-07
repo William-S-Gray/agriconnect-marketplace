@@ -14,7 +14,9 @@
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
     "typecheck": "tsc --noEmit",
     "ci": "./scripts/ci-local.sh",
-    "db:prune": "tsx --env-file-if-exists=.env.local scripts/prune.ts"
+    "db:prune": "tsx --env-file-if-exists=.env.local scripts/prune.ts",
+    "test:e2e": "playwright test",
+    "qa": "./scripts/qa.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -57,6 +59,7 @@
     "ioredis": "^6.0.0",
     "lucide-react": "^0.462.0",
     "next": "^15.5.27",
+    "nodemailer": "^10.0.15",
     "otplib": "^13.4.1",
     "pg": "^8.23.0",
     "qrcode": "^1.5.4",
@@ -74,6 +77,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.16.5",
     "@types/pg": "^8.23.1",

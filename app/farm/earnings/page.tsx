@@ -19,11 +19,13 @@ export default async function EarningsPage() {
   const [totals] = await sql<{
     gross: string; payout: string; fees: string; orders: string; pending: string;
   }>`
-    SELECT COALESCE(SUM(o.total_amount), 0)  AS gross,
-           COALESCE(SUM(o.farmer_payout), 0) AS payout,
-           COALESCE(SUM(o.platform_fee), 0)  AS fees,
-           COUNT(*)                          AS orders,
-           COUNT(*) FILTER (WHERE o.payment_status = 'HELD_ESCROW') AS pending
+    -- Money counts only once it is released to the farmer. Summing every
+    -- order counted cancelled, refunded and disputed sales as earnings.
+    SELECT COALESCE(SUM(o.total_amount)  FILTER (WHERE o.payment_status = 'RELEASED'), 0) AS gross,
+           COALESCE(SUM(o.farmer_payout) FILTER (WHERE o.payment_status = 'RELEASED'), 0) AS payout,
+           COALESCE(SUM(o.platform_fee)  FILTER (WHERE o.payment_status = 'RELEASED'), 0) AS fees,
+           COUNT(*) FILTER (WHERE o.status NOT IN ('CANCELLED', 'REFUNDED'))              AS orders,
+           COALESCE(SUM(o.farmer_payout) FILTER (WHERE o.payment_status = 'HELD_ESCROW'), 0) AS pending
       FROM orders o JOIN farmers f ON f.id = o.farmer_id
      WHERE f.user_id = ${session.id}
   `;
@@ -32,7 +34,7 @@ export default async function EarningsPage() {
     SELECT to_char(date_trunc('month', o.created_at), 'Mon') AS month,
            COALESCE(SUM(o.farmer_payout), 0) AS payout
       FROM orders o JOIN farmers f ON f.id = o.farmer_id
-     WHERE f.user_id = ${session.id}
+     WHERE f.user_id = ${session.id} AND o.payment_status = 'RELEASED'
      GROUP BY date_trunc('month', o.created_at)
      ORDER BY date_trunc('month', o.created_at)
      LIMIT 12
@@ -45,10 +47,10 @@ export default async function EarningsPage() {
       <h1 className="font-heading text-2xl font-bold text-foreground mb-6">Earnings</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-3xl">
-        <Stat icon={DollarSign} label="Net payout" value={`$${num(totals?.payout).toFixed(2)}`} />
-        <Stat icon={TrendingUp} label="Gross sales" value={`$${num(totals?.gross).toFixed(2)}`} />
+        <Stat icon={DollarSign} label="Paid out to you" value={`$${num(totals?.payout).toFixed(2)}`} />
+        <Stat icon={Clock} label="Held in escrow" value={`$${num(totals?.pending).toFixed(2)}`} />
+        <Stat icon={TrendingUp} label="Completed sales" value={`$${num(totals?.gross).toFixed(2)}`} />
         <Stat icon={Package} label="Orders" value={String(totals?.orders ?? 0)} />
-        <Stat icon={Clock} label="In escrow" value={String(totals?.pending ?? 0)} />
       </div>
 
       {chartData.length > 0 && (

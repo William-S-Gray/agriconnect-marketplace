@@ -27,7 +27,7 @@ export default async function FarmerProfilePage(props: { params: Promise<{ id: s
   }>`
     SELECT id, name, farm_name, province, district, status, rating,
            total_reviews, total_sales, farm_size_ha, profile_photo
-      FROM farmers WHERE id = ${params.id} AND status <> 'SUSPENDED' LIMIT 1
+      FROM farmers WHERE id = ${params.id} AND status = 'VERIFIED' LIMIT 1
   `;
   const farmer = farmers[0];
   if (!farmer) notFound();
@@ -39,7 +39,7 @@ export default async function FarmerProfilePage(props: { params: Promise<{ id: s
            l.is_available, l.province, l.district, l.delivery_options, l.views_count,
            l.status, l.created_at
       FROM listings l
-     WHERE l.farmer_id = ${params.id} AND l.status = 'ACTIVE'
+     WHERE l.farmer_id = ${params.id} AND l.status = 'ACTIVE' AND l.is_available AND l.quantity_kg > 0
      ORDER BY l.created_at DESC
      LIMIT 60
   `;

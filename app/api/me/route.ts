@@ -6,6 +6,8 @@ import { observePrivilegedFields } from '@/lib/anomaly-monitor';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { verifyPassword } from '@/lib/password';
 import { clientIp, chargeAttempt, settleAttempt, tooManyRequests } from '@/lib/rate-limit';
+import { readJson } from '@/lib/http';
+import { PROVINCES } from '@/lib/mock-data';
 
 export const runtime = 'nodejs';
 
@@ -33,7 +35,7 @@ const farmerPatch = z.object({
   name: z.string().trim().min(3).max(120).optional(),
   farm_name: z.string().trim().min(2).max(160).optional(),
   phone: optionalPhone,
-  province: z.string().trim().max(80).optional(),
+  province: z.enum(PROVINCES).optional(),
   district: z.string().trim().max(80).optional(),
   ecocash_number: z.string().trim().regex(ZW_PHONE).optional(),
   current_password: z.string().min(1).max(128).optional(),
@@ -54,12 +56,9 @@ export async function PATCH(request: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });

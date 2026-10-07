@@ -28,7 +28,7 @@ export default async function HomePage() {
   const [stats] = await sql<{ farmers: string; listings: string; provinces: string }>`
     WITH visible AS (
       SELECT l.province FROM listings l JOIN farmers f ON f.id = l.farmer_id
-       WHERE l.status = 'ACTIVE' AND l.is_available AND f.status <> 'SUSPENDED'
+       WHERE l.status = 'ACTIVE' AND l.is_available AND f.status = 'VERIFIED' AND l.quantity_kg > 0
     )
     SELECT (SELECT count(*) FROM farmers WHERE status = 'VERIFIED') AS farmers,
            (SELECT count(*) FROM visible)                            AS listings,
@@ -43,7 +43,7 @@ export default async function HomePage() {
            l.status, l.created_at, f.farm_name
       FROM listings l
       JOIN farmers f ON f.id = l.farmer_id
-     WHERE l.status = 'ACTIVE' AND l.is_available AND f.status <> 'SUSPENDED'
+     WHERE l.status = 'ACTIVE' AND l.is_available AND f.status = 'VERIFIED' AND l.quantity_kg > 0
      ORDER BY l.created_at DESC
      LIMIT 4
   `;

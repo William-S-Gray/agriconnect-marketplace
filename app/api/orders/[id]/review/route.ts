@@ -12,6 +12,7 @@ import {
   MAX_COMMENT_LENGTH,
 } from '@/lib/reviews';
 import type { OrderStatus } from '@/lib/order-lifecycle';
+import { readJson } from '@/lib/http';
 
 export const runtime = 'nodejs';
 
@@ -42,12 +43,9 @@ export async function POST(
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { requireAdmin } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
+import { logEvent } from '@/lib/log';
 
 export const runtime = 'nodejs';
 
@@ -24,12 +26,9 @@ export async function PATCH(request: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -52,5 +51,6 @@ export async function PATCH(request: Request) {
     );
   }
 
+  logEvent('info', 'admin.security_event_acknowledged', { adminId: auth.user.id, eventId: parsed.data.eventId });
   return NextResponse.json({ ok: true });
 }

@@ -91,6 +91,9 @@ export function middleware(req: NextRequest) {
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
   res.headers.set('content-security-policy', csp);
+  // API responses carry account data (cart, orders, profile). Never let a
+  // browser or a shared proxy keep a copy.
+  if (pathname.startsWith('/api/')) res.headers.set('cache-control', 'no-store');
   return res;
 }
 

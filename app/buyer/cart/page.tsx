@@ -20,10 +20,10 @@ export default async function CartPage() {
   const session = await requirePageRole(['buyer'], '/buyer/cart');
 
   const items = await sql<{
-    listing_id: string; quantity: string; title: string; category: string; produce_type: string;
+    listing_id: string; quantity: string; title: string; category: string; produce_type: string; min_order_qty: string;
     price_per_unit: string; quantity_unit: string; max_available: string; farm_name: string;
   }>`
-    SELECT c.listing_id, c.quantity, l.title, l.category, l.produce_type, l.price_per_unit,
+    SELECT c.listing_id, c.quantity, l.title, l.category, l.produce_type, l.min_order_qty, l.price_per_unit,
            l.quantity_unit, l.quantity_kg AS max_available, f.farm_name
       FROM cart_items c
       JOIN buyers   b ON b.id = c.buyer_id
@@ -43,7 +43,11 @@ export default async function CartPage() {
     quantity: num(i.quantity),
     pricePerUnit: num(i.price_per_unit),
     maxAvailable: num(i.max_available),
+    minOrder: num(i.min_order_qty),
   }));
+
+  const [buyer] = await sql<{ address: string | null }>`SELECT address FROM buyers WHERE user_id = ${session.id}`;
+  const address = buyer?.address ?? '';
 
   const total = cart.reduce((sum, i) => sum + i.quantity * i.pricePerUnit, 0);
 
@@ -64,7 +68,7 @@ export default async function CartPage() {
             </Link>
           </div>
         ) : (
-          <CartClient items={cart} total={total} feePercent={PLATFORM_FEE_PERCENT} />
+          <CartClient items={cart} total={total} feePercent={PLATFORM_FEE_PERCENT} defaultAddress={address} />
         )}
       </main>
       <Footer />

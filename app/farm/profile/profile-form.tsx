@@ -70,7 +70,7 @@ export function ProfileForm({
       <div>
         <Label className="text-foreground">Province</Label>
         <Select value={province} onValueChange={setProvince}>
-          <SelectTrigger className="neo-inset border-none"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="neo-inset border-none" aria-label="Province"><SelectValue>{province}</SelectValue></SelectTrigger>
           <SelectContent className="neo-card border-none">
             {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
           </SelectContent>

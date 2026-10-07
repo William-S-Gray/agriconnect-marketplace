@@ -25,6 +25,8 @@ const PUBLIC_MUTATIONS = new Set([
   'auth/password/forgot/route.ts',
   'auth/password/reset/route.ts',
   'auth/mfa/verify/route.ts', // half-authenticated by design; checks getSession itself
+  'auth/verify/route.ts', // the emailed token is the credential
+  'auth/verify/resend/route.ts',
 ]);
 
 const files = routeFiles(API).map((f) => ({ rel: relative(API, f), src: readFileSync(f, 'utf8') }));
@@ -37,6 +39,11 @@ describe('route handler guards', () => {
   for (const { rel, src } of files) {
     const mutates = /export async function (POST|PUT|PATCH|DELETE)\b/.test(src);
     if (!mutates) continue;
+
+    it(`${rel}: reads its body through readJson, never request.json()`, () => {
+      // readJson enforces the JSON content type and the body-size limit.
+      expect(src).not.toMatch(/request\.json\(\)/);
+    });
 
     it(`${rel}: every mutating handler checks the request origin`, () => {
       const handlers = src.match(/export async function (POST|PUT|PATCH|DELETE)\b/g)!.length;

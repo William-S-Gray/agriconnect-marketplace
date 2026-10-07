@@ -6,6 +6,7 @@ import { markMfaSatisfied, invalidateAllSessions } from '@/lib/session';
 import { beginEnrolment, confirmEnrolment, disableMfa } from '@/lib/mfa';
 import { verifyPassword } from '@/lib/password';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
 import {
   checkRateLimit,
   recordAttempt,
@@ -71,12 +72,9 @@ export async function PUT(request: Request) {
   const limit = await checkRateLimit('mfa', { identifier: session.email, ip });
   if (limit.limited) return tooManyRequests(limit.retryAfterSeconds);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = confirmSchema.safeParse(body);
   if (!parsed.success) {
@@ -111,12 +109,9 @@ export async function DELETE(request: Request) {
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = disableSchema.safeParse(body);
   if (!parsed.success) {

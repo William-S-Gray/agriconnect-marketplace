@@ -11,6 +11,7 @@ import {
   clientIp,
 } from '@/lib/rate-limit';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
 
 // Argon2 is a native module; this route must run on Node, not Edge.
 export const runtime = 'nodejs';
@@ -28,15 +29,9 @@ export async function POST(request: Request) {
 
   const ip = clientIp(request.headers);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid request body.', code: 'bad_request' },
-      { status: 400 },
-    );
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -54,11 +49,11 @@ export async function POST(request: Request) {
   if (charge.limited) return tooManyRequests(charge.retryAfterSeconds);
 
   const rows = (await sql`
-    SELECT id, email, password_hash, role, status, mfa_enabled, session_epoch
+    SELECT id, email, password_hash, role, status, mfa_enabled, session_epoch, email_verified_at
       FROM users
      WHERE email = ${email}
      LIMIT 1
-  `) as UserRow[];
+  `) as (UserRow & { email_verified_at: Date | null })[];
 
   const user = rows[0];
 
@@ -76,6 +71,14 @@ export async function POST(request: Request) {
   if (user.status === 'SUSPENDED') {
     return NextResponse.json(
       { error: 'This account is not available.', code: 'account_unavailable' },
+      { status: 403 },
+    );
+  }
+
+  // Only reachable with the right password, so it reveals nothing new.
+  if (!user.email_verified_at) {
+    return NextResponse.json(
+      { error: 'Confirm your email to finish setting up your account.', code: 'email_unverified' },
       { status: 403 },
     );
   }

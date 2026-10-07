@@ -23,7 +23,8 @@ export default async function BuyerDashboardPage() {
              WHERE b.user_id = ${session.id})                     AS orders,
            COALESCE((SELECT SUM(o.total_amount) FROM orders o
                       JOIN buyers b ON b.id = o.buyer_id
-                     WHERE b.user_id = ${session.id}), 0)         AS spent,
+                     WHERE b.user_id = ${session.id}
+                       AND o.payment_status <> 'REFUNDED'), 0)    AS spent,
            (SELECT count(*) FROM cart_items c JOIN buyers b ON b.id = c.buyer_id
              WHERE b.user_id = ${session.id})                     AS cart
   `;
@@ -51,7 +52,7 @@ export default async function BuyerDashboardPage() {
            l.status, l.created_at
       FROM listings l
       JOIN farmers f ON f.id = l.farmer_id
-     WHERE l.status = 'ACTIVE' AND l.is_available = TRUE AND f.status <> 'SUSPENDED'
+     WHERE l.status = 'ACTIVE' AND l.is_available = TRUE AND f.status = 'VERIFIED' AND l.quantity_kg > 0
      ORDER BY l.created_at DESC LIMIT 4
   `;
 

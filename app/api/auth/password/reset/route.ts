@@ -11,6 +11,7 @@ import {
   clientIp,
 } from '@/lib/rate-limit';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
 
 export const runtime = 'nodejs';
 
@@ -40,12 +41,9 @@ export async function POST(request: Request) {
   const limit = await checkRateLimit('password_reset', { ip });
   if (limit.limited) return tooManyRequests(limit.retryAfterSeconds);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -82,6 +80,8 @@ export async function POST(request: Request) {
       UPDATE users
          SET password_hash = ${await hashPassword(password)},
              session_epoch = session_epoch + 1,
+             -- The reset link was delivered to this address, which proves it.
+             email_verified_at = COALESCE(email_verified_at, now()),
              password_changed_at = now(),
              updated_at = now()
        WHERE id IN (SELECT user_id FROM t)

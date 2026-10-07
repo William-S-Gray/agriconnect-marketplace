@@ -32,7 +32,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ id: s
            f.status AS farmer_status, f.rating, f.total_reviews
       FROM listings l
       JOIN farmers f ON f.id = l.farmer_id
-     WHERE l.id = ${params.id} AND f.status <> 'SUSPENDED'
+     WHERE l.id = ${params.id} AND f.status = 'VERIFIED'
      LIMIT 1
   `;
 

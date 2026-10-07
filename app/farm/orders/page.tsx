@@ -1,6 +1,6 @@
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { formatDate, iso, num, paymentLabel } from '@/lib/serialize';
+import { formatDate, iso, num, paymentLabel, deliveryLabel } from '@/lib/serialize';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { FarmShell } from '../farm-shell';
 import { OrderTimeline } from '@/components/OrderTimeline';
@@ -21,10 +21,12 @@ export default async function FarmerOrdersPage() {
     id: string; reference: string; status: string; payment_status: string;
     quantity: string; unit_price: string; total_amount: string; farmer_payout: string;
     created_at: Date; buyer_name: string; listing_title: string;
+    delivery_method: string; delivery_address: string | null; notes: string | null; buyer_phone: string;
   }>`
     SELECT o.id, o.reference, o.status, o.payment_status, o.quantity, o.unit_price,
            o.total_amount, o.farmer_payout, o.created_at,
-           b.name AS buyer_name, l.title AS listing_title
+           b.name AS buyer_name, l.title AS listing_title,
+           o.delivery_method, o.delivery_address, o.notes, b.phone AS buyer_phone
       FROM orders o
       JOIN farmers  f ON f.id = o.farmer_id
       JOIN buyers   b ON b.id = o.buyer_id
@@ -53,6 +55,14 @@ export default async function FarmerOrdersPage() {
                   <p className="text-xs text-muted-foreground">
                     {num(o.quantity)} × ${num(o.unit_price).toFixed(2)}
                   </p>
+                  {/* Without these the farmer could not tell a pickup from a
+                      delivery, where to deliver, or how to reach the buyer. */}
+                  <p className="text-xs text-foreground mt-2">
+                    <span className="font-semibold">{deliveryLabel(o.delivery_method)}</span>
+                    {o.delivery_method === 'DELIVERY' && o.delivery_address ? ` to ${o.delivery_address}` : ''}
+                    {o.buyer_phone ? <> · <a href={`tel:${o.buyer_phone}`} className="text-primary hover:underline">{o.buyer_phone}</a></> : null}
+                  </p>
+                  {o.notes && <p className="text-xs text-muted-foreground mt-1">Note: {o.notes}</p>}
                 </div>
                 <div className="sm:text-right">
                   <p className="font-mono font-bold text-foreground">

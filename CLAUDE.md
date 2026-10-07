@@ -14,6 +14,8 @@ optional Redis. Tailwind 4 with the theme in `app/globals.css`; shadcn/ui in
 
 ## Invariants (tests enforce most of these)
 
+- Cron routes (`app/api/cron/*`, scheduled in `vercel.json`) check
+  `cronAuthorized` first.
 - Every mutating route handler calls `await verifyOrigin()` and, unless it is a
   public auth route, `requireUser`/`requireRole`/`requireAdmin`
   (`tests/route-guards.test.ts`).

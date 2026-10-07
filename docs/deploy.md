@@ -1,7 +1,23 @@
 # Deploying AgriConnect
 
 Checklist for taking a release to production. The app is a Next.js server
-plus Postgres (Neon) and, optionally, Redis.
+plus Postgres (Neon) and, optionally, Redis. It ships on **Vercel** (Node 22,
+Fluid Compute); `vercel.json` holds the cron schedule.
+
+## First-time Vercel setup
+
+1. `vercel link` in the repo, then connect the GitHub repo in the dashboard so
+   pushes to `main` deploy to production and pull requests get previews.
+2. **Database per environment.** Install the Neon integration from the Vercel
+   Marketplace with preview branching, or set `DATABASE_URL` per environment by
+   hand. Never give Preview the production `DATABASE_URL`: previews run real
+   code against whatever database they are given.
+3. Set the variables below with `vercel env add <NAME> production` (and
+   `preview` where noted). Generate secrets with `openssl rand -base64 32`.
+4. Run the migrations against the preview database once
+   (`DATABASE_URL=<preview> npm run db:migrate`). Production builds migrate
+   on their own (see Release steps).
+5. Add the custom domain, then set `APP_URL` to it and redeploy.
 
 ## Environment
 
@@ -12,14 +28,24 @@ plus Postgres (Neon) and, optionally, Redis.
 | `APP_URL` | The public origin, e.g. `https://agriconnect.co.zw` — **required**; the server refuses to start without it. |
 | `SIMULATED_PAYMENTS` | **Unset.** Only demo/preview environments set `true`. Unset, checkout returns 503 until a payment provider is integrated. |
 | `REDIS_URL` | Optional. Rate-limit counters; falls back to Postgres. |
-| `ANOMALY_TRUSTED_PROXY` | `vercel` or `cloudflare` if deployed behind one, else unset. |
+| `ANOMALY_TRUSTED_PROXY` | `vercel`. |
+| `CRON_SECRET` | 16+ random characters. Vercel Cron sends it to `/api/cron/prune`; unset, the route refuses every call and nothing is pruned. |
+| `SMTP_URL`, `MAIL_FROM` | Your mail provider. Unset, password reset cannot work. |
+
+Preview needs `DATABASE_URL` (its own), `MFA_ENCRYPTION_KEY` and, for the demo
+checkout, `SIMULATED_PAYMENTS=true`. `APP_URL` can stay unset on Preview: it
+falls back to the deployment's branch URL.
 
 ## Release steps
 
-1. **Migrate first.** `DATABASE_URL=<production> npm run db:migrate`
+1. **Merge to `main`.** Vercel runs `npm run vercel-build`, which applies
+   pending migrations before `next build` on production deployments only.
    Each file applies in a transaction under an advisory lock, so a failure
-   leaves nothing half-applied and two concurrent deploys cannot double-apply.
-2. **Deploy the build** (`npm run build && npm run start`, or your platform's equivalent).
+   leaves nothing half-applied, fails the build, and the previous deployment
+   keeps serving. Keep migrations backwards compatible: the old deployment
+   serves against the new schema until the new one is live.
+2. **Watch the deployment** (`vercel inspect <url> --logs`). To roll back,
+   `vercel rollback` — a rollback does not undo migrations.
 3. **Check health.** `curl -fsS https://<host>/api/health` → `{"ok":true}`. A 503 means the database is unreachable.
 4. **Smoke test** in a browser: home, browse, a listing page, `/prices` (the chart should draw), sign in.
 
@@ -31,9 +57,9 @@ production `DATABASE_URL` used from a laptop.
 
 - Every **admin** enrols two-factor authentication at `/settings/security`.
   Admin pages and APIs refuse an admin without it.
-- Schedule **`npm run db:prune`** daily (Vercel Cron, a GitHub Actions
-  schedule, or system cron). It deletes expired sessions, spent reset tokens
-  and old audit rows.
+- The daily prune (expired sessions, spent reset tokens, old audit rows) runs
+  from Vercel Cron at 03:00 UTC once `CRON_SECRET` is set. `npm run db:prune`
+  does the same by hand.
 
 ## Monitoring
 
@@ -43,5 +69,6 @@ Logs are one JSON object per line. Alert on:
 - `"event":"checkout_failed"`, `"order_update_failed"`, `"review_failed"`
 - `"event":"ratelimit_redis_fallback"` — Redis down (limiting continues on Postgres)
 - `"event":"health_db_unreachable"`
+- `"event":"prune_failed"`
 
 Open security events are also listed for admins at `/admin/security`.

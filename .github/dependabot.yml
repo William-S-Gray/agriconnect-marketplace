@@ -1,5 +1,5 @@
 # Weekly dependency update PRs. Patch and minor bumps are grouped into one PR
-# per ecosystem so CI (on the self-hosted runner) runs once, not once per
+# per ecosystem so CI runs once (Actions minutes are metered), not once per
 # package; majors arrive individually because they need a human read.
 version: 2
 updates:
@@ -10,8 +10,17 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     groups:
+      # react and react-dom must move together (react 19 alone broke main in
+      # #40), and the type packages with them.
+      react:
+        patterns: [react, react-dom, '@types/react', '@types/react-dom']
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # typescript-eslint supports TypeScript <6.1, and Next's build uses the
+      # TypeScript JS API that 7 dropped. Lift when both support it.
+      - dependency-name: typescript
+        versions: ['>=6.1']
     commit-message:
       prefix: deps
 

@@ -83,6 +83,9 @@ describe('no authentication token in client-accessible storage', () => {
   it('no Authorization/Bearer header scheme is used by the client', () => {
     const offenders = readAll()
       .filter(({ text }) => /Bearer\s|['"]authorization['"]\s*:/i.test(text))
+      // Server-only modules can't reach the client; lib/cron.ts reads the
+      // bearer secret Vercel Cron sends.
+      .filter(({ text }) => !/^import 'server-only';/m.test(text))
       .map(({ file }) => file);
     expect(offenders).toEqual([]);
   });

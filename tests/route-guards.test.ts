@@ -37,6 +37,13 @@ describe('route handler guards', () => {
   });
 
   for (const { rel, src } of files) {
+    // Cron routes are GETs that write, reachable by anyone who knows the path.
+    if (rel.startsWith('cron/')) {
+      it(`${rel}: checks the cron secret`, () => {
+        expect(src).toMatch(/cronAuthorized\(/);
+      });
+    }
+
     const mutates = /export async function (POST|PUT|PATCH|DELETE)\b/.test(src);
     if (!mutates) continue;
 

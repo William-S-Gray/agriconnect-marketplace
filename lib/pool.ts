@@ -7,6 +7,7 @@
  * guard so a client component importing it fails at build time.
  */
 import { Pool } from 'pg';
+import { attachDatabasePool } from '@vercel/functions';
 import { logError } from './log';
 
 export type Role = 'farmer' | 'buyer' | 'admin';
@@ -116,6 +117,12 @@ function createPool(): Pool {
 const globalForDb = globalThis as unknown as { __agriPool?: Pool };
 export const pool: Pool = globalForDb.__agriPool ?? withErrorHandler(createPool());
 if (process.env.NODE_ENV === 'development') globalForDb.__agriPool = pool;
+
+// Fluid Compute suspends an instance between requests, and a suspended
+// instance never reaches idleTimeoutMillis, so its idle clients would hold
+// their Postgres connections open. This keeps the instance alive just long
+// enough to close them. Outside Vercel it does nothing.
+attachDatabasePool(pool);
 
 /**
  * Tagged-template query helper. Values become bound parameters, which is the

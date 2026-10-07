@@ -70,7 +70,7 @@ export function SiteNav({ cartCount = 0 }: { cartCount?: number }) {
 
           {isAuthenticated ? (
             <>
-              <Link href={dashboard}>
+              <Link href={dashboard} className="hidden sm:block">
                 <Button variant="outline" className="neo-flat border-none text-sm">
                   {displayName.split(' ')[0] || 'Dashboard'}
                 </Button>

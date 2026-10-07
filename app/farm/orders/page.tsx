@@ -54,14 +54,14 @@ export default async function FarmerOrdersPage() {
                     {num(o.quantity)} × ${num(o.unit_price).toFixed(2)}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="sm:text-right">
                   <p className="font-mono font-bold text-foreground">
                     ${num(o.total_amount).toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     You receive ${num(o.farmer_payout).toFixed(2)}
                   </p>
-                  <div className="mt-1 flex items-center justify-end gap-2">
+                  <div className="mt-1 flex items-center sm:justify-end gap-2">
                       <OrderStatusBadge status={o.status} />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Payment: {paymentLabel(o.payment_status)}</p>

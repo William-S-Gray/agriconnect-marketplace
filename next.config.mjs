@@ -45,6 +45,12 @@ const nextConfig = {
    * native bindings; webpack cannot parse either.
    */
   serverExternalPackages: ['@node-rs/argon2', 'pg'],
+  experimental: {
+    // Middleware runs on every API route, and Next buffers a request body up
+    // to this size for it before the route sees it (default 10 MB). Routes
+    // accept at most 64 KB (lib/http.ts), so nothing larger needs buffering.
+    middlewareClientMaxBodySize: '128kb',
+  },
   // Browsers request /favicon.ico on their own, regardless of the <link> tag.
   async redirects() {
     return [{ source: '/favicon.ico', destination: '/favicon.svg', permanent: true }];

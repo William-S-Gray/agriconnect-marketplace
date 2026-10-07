@@ -58,8 +58,19 @@ export function contentSecurityPolicy(nonce: string, isProd: boolean): string {
   ].join('; ');
 }
 
+/** Matches lib/http.ts MAX_JSON_BYTES; refused here before any buffering. */
+const MAX_BODY_BYTES = 64 * 1024;
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  const declared = Number(req.headers.get('content-length') ?? 0);
+  if (pathname.startsWith('/api/') && declared > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { error: 'Request body is too large.', code: 'payload_too_large' },
+      { status: 413 },
+    );
+  }
 
   const isProtectedPage =
     pathname !== '/admin/login' &&

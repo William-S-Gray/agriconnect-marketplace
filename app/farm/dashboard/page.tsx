@@ -24,7 +24,7 @@ export default async function FarmerDashboardPage() {
   const [stats] = await sql<{ revenue: string; orders: string; listings: string; pending: string }>`
     SELECT COALESCE((SELECT SUM(o.farmer_payout) FROM orders o
                       JOIN farmers f ON f.id = o.farmer_id
-                     WHERE f.user_id = ${session.id}), 0) AS revenue,
+                     WHERE f.user_id = ${session.id} AND o.payment_status = 'RELEASED'), 0) AS revenue,
            (SELECT count(*) FROM orders o JOIN farmers f ON f.id = o.farmer_id
              WHERE f.user_id = ${session.id})             AS orders,
            (SELECT count(*) FROM listings l JOIN farmers f ON f.id = l.farmer_id
@@ -68,8 +68,23 @@ export default async function FarmerDashboardPage() {
         </Link>
       </div>
 
+      {/* Buyers only see verified farms, so say so rather than leave the farmer
+          wondering why nothing sells. */}
+      {profile?.status === 'PENDING' && (
+        <p role="status" className="neo-card mb-6 p-4 text-sm text-foreground">
+          Your farm is awaiting verification by AgriConnect. You can prepare listings now; buyers
+          will see them as soon as your farm is verified.
+        </p>
+      )}
+      {profile?.status === 'SUSPENDED' && (
+        <p role="status" className="neo-card mb-6 p-4 text-sm text-destructive">
+          Your farm is suspended, so your listings are hidden from buyers. Contact
+          support@agriconnect.co.zw.
+        </p>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Stat icon={DollarSign} label="Net revenue" value={`$${num(stats?.revenue).toFixed(2)}`} />
+        <Stat icon={DollarSign} label="Paid out to you" value={`$${num(stats?.revenue).toFixed(2)}`} />
         <Stat icon={ShoppingBag} label="Orders" value={String(stats?.orders ?? 0)} />
         <Stat icon={Package} label="Active listings" value={String(stats?.listings ?? 0)} />
         <Stat icon={Star} label="Rating" value={num(profile?.rating).toFixed(1)} />

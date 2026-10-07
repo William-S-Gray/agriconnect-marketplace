@@ -18,6 +18,7 @@ interface CartItem {
   quantity: number;
   pricePerUnit: number;
   maxAvailable: number;
+  minOrder: number;
 }
 
 /**
@@ -27,10 +28,14 @@ interface CartItem {
  */
 export function CartClient({
   items, total, feePercent,
-}: { items: CartItem[]; total: number; feePercent: number }) {
+  defaultAddress,
+}: { items: CartItem[]; total: number; feePercent: number; defaultAddress: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [delivery, setDelivery] = useState<'PICKUP' | 'DELIVERY'>('PICKUP');
+  const [address, setAddress] = useState(defaultAddress);
+  const needsAddress = delivery === 'DELIVERY' && address.trim().length < 5;
 
   async function setQuantity(listingId: string, quantity: number) {
     setBusy(true);
@@ -51,23 +56,27 @@ export function CartClient({
     }
   }
 
-  async function onPaymentAuthorised() {
+  async function onPaymentAuthorised(): Promise<string | null> {
     const res = await fetch('/api/buyer/orders', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ deliveryMethod: 'DELIVERY' }),
+      body: JSON.stringify({
+        deliveryMethod: delivery,
+        ...(delivery === 'DELIVERY' ? { deliveryAddress: address.trim() } : {}),
+      }),
     });
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      toast.error(data.error ?? 'Checkout failed.');
-      return false;
+      const reason = data.error ?? 'Checkout failed. Please try again.';
+      toast.error(reason);
+      return reason;
     }
     toast.success(`Order ${data.references?.[0] ?? ''} placed. Payment held in escrow.`);
     router.push('/buyer/orders');
     router.refresh();
-    return true;
+    return null;
   }
 
   return (
@@ -87,9 +96,11 @@ export function CartClient({
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant="outline" size="icon" disabled={busy}
+                variant="outline" size="icon"
                 className="h-8 w-8 neo-flat border-none" aria-label="Decrease quantity"
-                onClick={() => setQuantity(item.listingId, Math.max(1, item.quantity - 1))}
+                disabled={busy || item.quantity - 1 < item.minOrder}
+                title={item.quantity - 1 < item.minOrder ? `Minimum order is ${item.minOrder}` : undefined}
+                onClick={() => setQuantity(item.listingId, item.quantity - 1)}
               >
                 <Minus className="h-3 w-3" />
               </Button>
@@ -136,7 +147,29 @@ export function CartClient({
           </div>
         </div>
 
-        <Button className="w-full btn-gold text-lg py-3 h-auto" onClick={() => setCheckoutOpen(true)}>
+        <fieldset className="mb-4 space-y-3">
+          <legend className="text-sm font-semibold text-foreground mb-2">How do you want it?</legend>
+          <div className="grid grid-cols-2 gap-3">
+            {([['PICKUP', 'Pick up from the farm'], ['DELIVERY', 'Deliver to me']] as const).map(([value, label]) => (
+              <label key={value} className={`flex cursor-pointer items-center gap-2 rounded-xl p-3 text-sm ${delivery === value ? 'neo-inset text-foreground font-medium' : 'neo-flat text-muted-foreground'}`}>
+                <input type="radio" name="delivery" value={value} checked={delivery === value}
+                  onChange={() => setDelivery(value)} className="accent-primary" />
+                {label}
+              </label>
+            ))}
+          </div>
+          {delivery === 'DELIVERY' && (
+            <div>
+              <label htmlFor="delivery-address" className="text-sm text-foreground">Delivery address</label>
+              <textarea id="delivery-address" rows={2} maxLength={240} value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="mt-1 w-full rounded-xl neo-inset border-none bg-transparent p-3 text-sm text-foreground"
+                placeholder="Street, suburb and town" />
+            </div>
+          )}
+        </fieldset>
+
+        <Button className="w-full btn-gold text-lg py-3 h-auto" onClick={() => setCheckoutOpen(true)} disabled={needsAddress}>
           <Smartphone className="h-5 w-5 mr-2" aria-hidden /> Pay with EcoCash
         </Button>
       </div>
@@ -146,7 +179,7 @@ export function CartClient({
         onClose={() => setCheckoutOpen(false)}
         amount={total}
         itemCount={items.length}
-        onSuccess={() => { void onPaymentAuthorised(); }}
+        onSuccess={onPaymentAuthorised}
       />
     </>
   );

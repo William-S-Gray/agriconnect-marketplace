@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { PROVINCES } from '@/lib/mock-data';
 
 /**
  * Registration.
@@ -135,7 +136,18 @@ export function RegisterForm({ initialRole = 'buyer' }: { initialRole?: 'farmer'
         {role === 'farmer' ? (
           <>
             <Field name="farm_name" label="Farm name" required />
-            <Field name="province" label="Province" required />
+            <div>
+              <Label htmlFor="province" className="text-foreground">Province</Label>
+              {/* A list, not free text: a typo here became the farm's province
+                  and the default for every listing it created. */}
+              <select
+                id="province" name="province" required defaultValue=""
+                className="flex h-11 w-full rounded-md px-3 text-sm neo-inset border-none bg-transparent text-foreground"
+              >
+                <option value="" disabled>Choose a province</option>
+                {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
             <Field name="ecocash_number" label="EcoCash number" placeholder="0771234567" required />
           </>
         ) : (

@@ -40,6 +40,11 @@ describe('route handler guards', () => {
     const mutates = /export async function (POST|PUT|PATCH|DELETE)\b/.test(src);
     if (!mutates) continue;
 
+    it(`${rel}: reads its body through readJson, never request.json()`, () => {
+      // readJson enforces the JSON content type and the body-size limit.
+      expect(src).not.toMatch(/request\.json\(\)/);
+    });
+
     it(`${rel}: every mutating handler checks the request origin`, () => {
       const handlers = src.match(/export async function (POST|PUT|PATCH|DELETE)\b/g)!.length;
       expect((src.match(/verifyOrigin\(/g) ?? []).length).toBeGreaterThanOrEqual(handlers);

@@ -5,6 +5,8 @@ import { requireAdmin } from '@/lib/rbac';
 import { revokeAllSessionsForUser } from '@/lib/session';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { observeDataAccess } from '@/lib/anomaly-monitor';
+import { readJson } from '@/lib/http';
+import { logEvent } from '@/lib/log';
 
 export const runtime = 'nodejs';
 
@@ -56,12 +58,9 @@ export async function PATCH(request: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
@@ -80,28 +79,39 @@ export async function PATCH(request: Request) {
     );
   }
 
+  // Each statement reports whether it found its target, so an action on a
+  // missing user — or "verify farmer" on an account that has no farm — is a
+  // 404 instead of a success that changed nothing.
+  let changed: unknown[] = [];
   switch (action) {
     case 'suspend':
-      await sql`UPDATE users SET status = 'SUSPENDED', updated_at = now() WHERE id = ${userId}`;
+      changed = await sql`UPDATE users SET status = 'SUSPENDED', updated_at = now() WHERE id = ${userId} RETURNING id`;
       // Kick the suspended user out immediately rather than at token expiry.
-      await revokeAllSessionsForUser(userId);
+      if (changed.length) await revokeAllSessionsForUser(userId);
       break;
     case 'reactivate':
-      await sql`UPDATE users SET status = 'ACTIVE', updated_at = now() WHERE id = ${userId}`;
+      changed = await sql`UPDATE users SET status = 'ACTIVE', updated_at = now() WHERE id = ${userId} RETURNING id`;
       break;
     case 'verify_farmer':
-      await sql`
+      changed = await sql`
         UPDATE farmers SET status = 'VERIFIED', updated_at = now()
          WHERE user_id = ${userId}
+         RETURNING id
       `;
       break;
     case 'suspend_farmer':
-      await sql`
+      changed = await sql`
         UPDATE farmers SET status = 'SUSPENDED', updated_at = now()
          WHERE user_id = ${userId}
+         RETURNING id
       `;
       break;
   }
+  if (changed.length === 0) {
+    return NextResponse.json({ error: 'No matching account for that action.', code: 'not_found' }, { status: 404 });
+  }
 
+  // Who changed whose access, for the record. Ids only — no personal data.
+  logEvent('info', 'admin.user_action', { adminId: auth.user.id, userId, action });
   return NextResponse.json({ ok: true });
 }

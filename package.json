@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "ci": "./scripts/ci-local.sh",
     "db:prune": "tsx --env-file-if-exists=.env.local scripts/prune.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "qa": "./scripts/qa.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

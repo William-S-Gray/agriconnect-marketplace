@@ -13,6 +13,8 @@ import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { env } from '@/lib/env';
 import { mailConfigured, sendMail, verifyEmailMessage, alreadyRegisteredMessage } from '@/lib/mail';
 import { issueVerificationToken } from '@/lib/email-verification';
+import { readJson } from '@/lib/http';
+import { PROVINCES } from '@/lib/mock-data';
 
 export const runtime = 'nodejs';
 
@@ -34,7 +36,7 @@ const baseSchema = z.object({
 const farmerSchema = baseSchema.extend({
   role: z.literal('farmer'),
   farm_name: z.string().trim().min(2).max(160),
-  province: z.string().trim().min(2).max(80),
+  province: z.enum(PROVINCES),
   district: z.string().trim().max(80).optional().default(''),
   ecocash_number: z.string().trim().regex(ZW_PHONE, 'Invalid EcoCash number'),
   farm_size_ha: z.coerce.number().positive().max(100000).optional(),
@@ -58,12 +60,9 @@ export async function POST(request: Request) {
   const limit = await checkRateLimit('register', { ip });
   if (limit.limited) return tooManyRequests(limit.retryAfterSeconds);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

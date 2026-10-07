@@ -63,7 +63,7 @@ describe('registration with email configured', () => {
     expect(early.status).toBe(403);
     expect((await early.json()).code).toBe('email_unverified');
 
-    const confirmed = await verify.POST(post('/api/auth/verify', { token }));
+    const confirmed = await verify.POST(post('/api/auth/verify', { token, password: PASSWORD }));
     expect(confirmed.status).toBe(200);
     expect((await confirmed.json()).next).toBe('/buyer/dashboard');
     expect(cookieJar.size).toBe(1);
@@ -86,12 +86,24 @@ describe('registration with email configured', () => {
     expect(outbox[0]!.subject).toMatch(/already have an AgriConnect account/i);
   });
 
+  it('confirming needs the password chosen at sign-up (no pre-registration takeover)', async () => {
+    const email = `prereg-${suffix}@example.test`;
+    await register.POST(post('/api/auth/register', buyer(email)));
+    const token = tokenFrom(outbox[0]!.text);
+    // Someone else — the real owner of the address — opens the link.
+    const res = await verify.POST(post('/api/auth/verify', { token, password: 'not the registrant password' }));
+    expect(res.status).toBe(401);
+    expect(cookieJar.size).toBe(0);
+    // The token survives a wrong guess, for the person who did register.
+    expect((await verify.POST(post('/api/auth/verify', { token, password: PASSWORD }))).status).toBe(200);
+  });
+
   it('a verification link works once', async () => {
     const email = `once-${suffix}@example.test`;
     await register.POST(post('/api/auth/register', buyer(email)));
     const token = tokenFrom(outbox[0]!.text);
-    expect((await verify.POST(post('/api/auth/verify', { token }))).status).toBe(200);
-    expect((await verify.POST(post('/api/auth/verify', { token }))).status).toBe(400);
+    expect((await verify.POST(post('/api/auth/verify', { token, password: PASSWORD }))).status).toBe(200);
+    expect((await verify.POST(post('/api/auth/verify', { token, password: PASSWORD }))).status).toBe(400);
   });
 
   it('resend answers the same for unknown addresses and only mails a pending one', async () => {
@@ -108,8 +120,8 @@ describe('registration with email configured', () => {
     expect(await pending.json()).toEqual(unknownBody);
     expect(outbox).toHaveLength(1);
     // The new link replaces the old one.
-    expect((await verify.POST(post('/api/auth/verify', { token: first }))).status).toBe(400);
-    expect((await verify.POST(post('/api/auth/verify', { token: tokenFrom(outbox[0]!.text) }))).status).toBe(200);
+    expect((await verify.POST(post('/api/auth/verify', { token: first, password: PASSWORD }))).status).toBe(400);
+    expect((await verify.POST(post('/api/auth/verify', { token: tokenFrom(outbox[0]!.text), password: PASSWORD }))).status).toBe(200);
   });
 });
 

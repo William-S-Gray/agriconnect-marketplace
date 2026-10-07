@@ -31,6 +31,12 @@ export function AddToCart({
   const [quantity, setQuantity] = useState(Math.max(1, minOrder));
   const [submitting, setSubmitting] = useState(false);
 
+  // Reachable by direct link even when stock runs out; say so instead of
+  // offering a button the server will refuse.
+  if (maxAvailable <= 0) {
+    return <p className="text-sm text-muted-foreground neo-flat rounded-xl p-3">Sold out for now.</p>;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="space-y-2">

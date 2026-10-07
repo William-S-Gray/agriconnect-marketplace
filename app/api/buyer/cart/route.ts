@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { requireRole, buyerIdForUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
+import { quantityProblem } from '@/lib/units';
 
 export const runtime = 'nodejs';
 
@@ -60,10 +62,9 @@ export async function POST(request: Request) {
   const ctx = await buyerContext();
   if (!ctx.ok) return ctx.response;
 
-  let body: unknown;
-  try { body = await request.json(); } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
   const parsed = addSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid cart item.', code: 'bad_request' }, { status: 400 });
@@ -71,21 +72,26 @@ export async function POST(request: Request) {
 
   // Price and stock come from the listing row, never from the client — a
   // tampered price in the request body has nowhere to land.
-  const listing = await sql<{ quantity_kg: string; min_order_qty: string; status: string }>`
-    SELECT l.quantity_kg, l.min_order_qty, l.status FROM listings l
+  const listing = await sql<{ quantity_kg: string; min_order_qty: string; status: string; quantity_unit: string }>`
+    SELECT l.quantity_kg, l.min_order_qty, l.status, l.quantity_unit FROM listings l
       JOIN farmers f ON f.id = l.farmer_id
      WHERE l.id = ${parsed.data.listingId} AND l.is_available = TRUE
-       AND f.status <> 'SUSPENDED'
+       AND f.status = 'VERIFIED'
      LIMIT 1
   `;
   const row = listing[0];
-  if (!row || row.status !== 'ACTIVE') {
+  // An ACTIVE listing can still have no stock left; adding it used to insert a
+  // zero quantity and fail the database's quantity > 0 check with a 500.
+  if (!row || row.status !== 'ACTIVE' || Number(row.quantity_kg) <= 0) {
     return NextResponse.json({ error: 'This listing is unavailable.', code: 'unavailable' }, { status: 409 });
   }
 
   const available = Number(row.quantity_kg);
   const minOrder = Number(row.min_order_qty);
   const requested = parsed.data.quantity;
+
+  const problem = quantityProblem(requested, row.quantity_unit);
+  if (problem) return NextResponse.json({ error: problem, code: 'bad_quantity' }, { status: 400 });
 
   if (requested < minOrder) {
     return NextResponse.json(
@@ -116,10 +122,9 @@ export async function PATCH(request: Request) {
   const ctx = await buyerContext();
   if (!ctx.ok) return ctx.response;
 
-  let body: unknown;
-  try { body = await request.json(); } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid quantity.', code: 'bad_request' }, { status: 400 });
@@ -133,9 +138,27 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, removed: true });
   }
 
+  // The same rules as adding: whole units where they apply, and never below
+  // the listing's minimum order (editing the cart used to bypass it).
+  const [listing] = await sql<{ quantity_unit: string; min_order_qty: string }>`
+    SELECT l.quantity_unit, l.min_order_qty FROM cart_items c JOIN listings l ON l.id = c.listing_id
+     WHERE c.buyer_id = ${ctx.buyerId} AND c.listing_id = ${parsed.data.listingId}
+  `;
+  if (!listing) return NextResponse.json({ error: 'That item is not in your cart.', code: 'not_in_cart' }, { status: 404 });
+  const problem = quantityProblem(parsed.data.quantity, listing.quantity_unit);
+  if (problem) return NextResponse.json({ error: problem, code: 'bad_quantity' }, { status: 400 });
+  if (parsed.data.quantity < Number(listing.min_order_qty)) {
+    return NextResponse.json(
+      { error: `Minimum order is ${Number(listing.min_order_qty)}.`, code: 'below_minimum' },
+      { status: 400 },
+    );
+  }
+
   await sql`
     UPDATE cart_items c
-       SET quantity = LEAST(${parsed.data.quantity}, l.quantity_kg), updated_at = now()
+       -- Out of stock: leave the line alone; checkout refuses it as unavailable.
+       SET quantity = CASE WHEN l.quantity_kg > 0 THEN LEAST(${parsed.data.quantity}, l.quantity_kg) ELSE c.quantity END,
+           updated_at = now()
       FROM listings l
      WHERE l.id = c.listing_id
        AND c.buyer_id = ${ctx.buyerId}

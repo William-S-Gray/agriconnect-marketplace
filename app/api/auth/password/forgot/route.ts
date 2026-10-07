@@ -11,6 +11,7 @@ import {
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { env } from '@/lib/env';
 import { sendMail, passwordResetMessage } from '@/lib/mail';
+import { readJson } from '@/lib/http';
 
 export const runtime = 'nodejs';
 
@@ -37,12 +38,9 @@ export async function POST(request: Request) {
 
   const ip = clientIp(request.headers);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   // Even a malformed email gets the generic answer, so probing learns nothing.

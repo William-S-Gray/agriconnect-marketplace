@@ -23,13 +23,15 @@ export async function issueVerificationToken(userId: string): Promise<string> {
   return token;
 }
 
-/** The address a still-valid token belongs to, without consuming it. */
-export async function peekVerificationToken(token: string): Promise<string | null> {
-  const [row] = await sql<{ email: string }>`
-    SELECT u.email FROM email_verification_tokens t JOIN users u ON u.id = t.user_id
+/** The account a still-valid token belongs to, without consuming it. */
+export async function peekVerificationToken(
+  token: string,
+): Promise<{ email: string; passwordHash: string } | null> {
+  const [row] = await sql<{ email: string; password_hash: string }>`
+    SELECT u.email, u.password_hash FROM email_verification_tokens t JOIN users u ON u.id = t.user_id
      WHERE t.token_hash = ${hashToken(token)} AND t.used_at IS NULL AND t.expires_at > now()
   `;
-  return row?.email ?? null;
+  return row ? { email: row.email, passwordHash: row.password_hash } : null;
 }
 
 /**

@@ -4,6 +4,7 @@ import { sql, pool } from '@/lib/db';
 import { requireUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { logError } from '@/lib/log';
+import { readJson } from '@/lib/http';
 import {
   checkTransition,
   availableActions,
@@ -101,12 +102,9 @@ export async function PATCH(
   const auth = await requireUser();
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {

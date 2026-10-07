@@ -10,13 +10,20 @@ interface EcoCashModalProps {
   onClose: () => void;
   amount: number;
   itemCount: number;
-  onSuccess: () => void;
+  /**
+   * Places the order. Resolves to null on success, or the reason it failed —
+   * the modal only shows "confirmed" once the order really exists. It used to
+   * show success first, so a checkout that then failed (e.g. stock gone)
+   * displayed "Payment Confirmed!" next to an error.
+   */
+  onSuccess: () => Promise<string | null>;
 }
 
 type Step = 'confirm' | 'processing' | 'success' | 'error';
 
 export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: EcoCashModalProps) {
   const [step, setStep] = useState<Step>('confirm');
+  const [failure, setFailure] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
 
   // Hold onSuccess in a ref so the processing effect does not restart (and
@@ -41,9 +48,12 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
           clearInterval(interval);
           // Simulate 95% success rate
           if (Math.random() > 0.05) {
-            setStep('success');
-            onSuccessRef.current();
+            void onSuccessRef.current().then((failure) => {
+              setFailure(failure);
+              setStep(failure ? 'error' : 'success');
+            });
           } else {
+            setFailure(null);
             setStep('error');
           }
           return 0;
@@ -169,8 +179,8 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               <AlertCircle className="h-10 w-10 text-red-500" />
             </div>
             <div>
-              <p className="font-heading text-lg font-bold text-foreground">Payment Failed</p>
-              <p className="text-sm text-muted-foreground mt-1">Could not connect to EcoCash. Please try again.</p>
+              <p className="font-heading text-lg font-bold text-foreground">{failure ? 'Order not placed' : 'Payment Failed'}</p>
+              <p className="text-sm text-muted-foreground mt-1">{failure ?? 'Could not connect to EcoCash. Please try again.'}</p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 neo-flat border-none" onClick={onClose}>

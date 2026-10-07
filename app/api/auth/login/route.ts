@@ -11,6 +11,7 @@ import {
   clientIp,
 } from '@/lib/rate-limit';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
 
 // Argon2 is a native module; this route must run on Node, not Edge.
 export const runtime = 'nodejs';
@@ -28,15 +29,9 @@ export async function POST(request: Request) {
 
   const ip = clientIp(request.headers);
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid request body.', code: 'bad_request' },
-      { status: 400 },
-    );
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

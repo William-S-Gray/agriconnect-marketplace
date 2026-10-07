@@ -110,6 +110,19 @@ if (process.env.NODE_ENV === 'development') globalForDb.__agriPool = pool;
  *
  *     await sql`SELECT * FROM users WHERE email = ${email}`
  */
+/**
+ * Postgres cannot store a NUL character in text and rejects the whole query
+ * ("invalid byte sequence for encoding UTF8: 0x00"), so a single %00 in any
+ * user input — a search box, a URL parameter — became a 500. No legitimate
+ * text contains one; it is removed at the one place every value passes
+ * through on its way to the database.
+ */
+function clean(values: unknown[]): unknown[] {
+  const strip = (v: unknown): unknown =>
+    typeof v === 'string' ? v.replaceAll('\u0000', '') : Array.isArray(v) ? v.map(strip) : v;
+  return values.map(strip);
+}
+
 export async function sql<T = Record<string, unknown>>(
   strings: TemplateStringsArray,
   ...values: unknown[]
@@ -119,7 +132,7 @@ export async function sql<T = Record<string, unknown>>(
     text += chunk;
     if (i < values.length) text += `$${i + 1}`;
   });
-  const result = await pool.query(text, values);
+  const result = await pool.query(text, clean(values));
   return result.rows as T[];
 }
 
@@ -128,6 +141,6 @@ export async function query<T = Record<string, unknown>>(
   text: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  const result = await pool.query(text, params);
+  const result = await pool.query(text, clean(params));
   return result.rows as T[];
 }

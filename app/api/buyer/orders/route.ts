@@ -7,6 +7,7 @@ import { requireRole, buyerIdForUser } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
 import { PLATFORM_FEE_PERCENT } from '@/lib/mock-data';
 import { newOrderReference } from '@/lib/order-lifecycle';
+import { readJson } from '@/lib/http';
 
 export const runtime = 'nodejs';
 
@@ -14,6 +15,9 @@ const schema = z.object({
   deliveryMethod: z.enum(['PICKUP', 'DELIVERY']).default('PICKUP'),
   deliveryAddress: z.string().trim().max(240).optional(),
   notes: z.string().trim().max(500).optional(),
+}).refine((d) => d.deliveryMethod !== 'DELIVERY' || (d.deliveryAddress?.length ?? 0) >= 5, {
+  // A delivery order with no address left the farmer nowhere to deliver.
+  message: 'Enter a delivery address.', path: ['deliveryAddress'],
 });
 
 /**
@@ -46,11 +50,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No buyer profile.', code: 'no_profile' }, { status: 403 });
   }
 
-  let body: unknown = {};
-  try { body = await request.json(); } catch { /* empty body is fine */ }
+  const read = await readJson(request, { optional: true });
+  if (!read.ok) return read.response;
+  const body = read.data;
   const parsed = schema.safeParse(body ?? {});
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid checkout details.' }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Invalid checkout details.', code: 'bad_request' },
+      { status: 400 },
+    );
   }
   const { deliveryMethod, deliveryAddress, notes } = parsed.data;
 
@@ -58,17 +66,29 @@ export async function POST(request: Request) {
   try {
     await client.query('BEGIN');
 
-    // Lock the listings so two concurrent checkouts cannot oversell stock.
-    const { rows: items } = await client.query(
-      `SELECT c.listing_id, c.quantity, l.price_per_unit, l.quantity_kg, l.farmer_id, l.status,
-              l.is_available, f.status AS farmer_status
-         FROM cart_items c
-         JOIN listings l ON l.id = c.listing_id
-         JOIN farmers  f ON f.id = l.farmer_id
-        WHERE c.buyer_id = $1
-        FOR UPDATE OF l`,
+    // Claim the cart first, by deleting it. A second submission of the same
+    // cart (a double-click, a retried request) blocks on these rows until this
+    // transaction ends and then finds nothing to claim — before this, three
+    // concurrent submissions created three orders for one cart. If anything
+    // below fails, ROLLBACK puts the cart back.
+    const { rows: claimed } = await client.query(
+      'DELETE FROM cart_items WHERE buyer_id = $1 RETURNING listing_id, quantity',
       [buyerId],
     );
+
+    // Lock the listings so two buyers' concurrent checkouts cannot oversell.
+    const { rows: listingRows } = await client.query(
+      `SELECT l.id AS listing_id, l.price_per_unit, l.quantity_kg, l.farmer_id, l.status,
+              l.is_available, f.status AS farmer_status
+         FROM listings l
+         JOIN farmers f ON f.id = l.farmer_id
+        WHERE l.id = ANY($1::uuid[])
+        ORDER BY l.id
+        FOR UPDATE OF l`,
+      [claimed.map((c) => c.listing_id)],
+    );
+    const byId = new Map(listingRows.map((r) => [r.listing_id, r]));
+    const items = claimed.map((c) => ({ ...byId.get(c.listing_id), listing_id: c.listing_id, quantity: c.quantity }));
 
     if (items.length === 0) {
       await client.query('ROLLBACK');
@@ -81,7 +101,7 @@ export async function POST(request: Request) {
       const available = Number(item.quantity_kg);
 
       if (item.status !== 'ACTIVE' || !item.is_available
-          || item.farmer_status === 'SUSPENDED' || quantity > available) {
+          || item.farmer_status !== 'VERIFIED' || quantity > available) {
         await client.query('ROLLBACK');
         return NextResponse.json(
           { error: 'A listing in your cart is no longer available.', code: 'unavailable' },
@@ -117,7 +137,6 @@ export async function POST(request: Request) {
       references.push(reference);
     }
 
-    await client.query('DELETE FROM cart_items WHERE buyer_id = $1', [buyerId]);
     await client.query('COMMIT');
 
     return NextResponse.json({ ok: true, references });

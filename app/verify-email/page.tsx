@@ -18,7 +18,8 @@ export default async function VerifyEmailPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token = '' } = await searchParams;
-  const email = token.length >= 20 && token.length <= 200 ? await peekVerificationToken(token) : null;
+  const pending = token.length >= 20 && token.length <= 200 ? await peekVerificationToken(token) : null;
+  const email = pending?.email ?? null;
 
   return (
     <main className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
@@ -33,7 +34,7 @@ export default async function VerifyEmailPage({
             <h1 className="font-heading text-2xl font-bold text-foreground">Confirm your email</h1>
             <p className="text-sm text-muted-foreground">
               You’re confirming <span className="font-semibold text-foreground">{email}</span> for a new
-              AgriConnect account.
+              AgriConnect account. Enter the password you chose when you signed up.
             </p>
             <ConfirmEmailButton token={token} />
           </>

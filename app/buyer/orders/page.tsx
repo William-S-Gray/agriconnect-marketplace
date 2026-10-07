@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { formatDate, iso, num, paymentLabel } from '@/lib/serialize';
+import { formatDate, iso, num, paymentLabel, deliveryLabel } from '@/lib/serialize';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
@@ -23,11 +23,13 @@ export default async function BuyerOrdersPage() {
     quantity: string; unit_price: string; total_amount: string; created_at: Date;
     listing_title: string; farm_name: string; farmer_id: string;
     review_rating: number | null; review_comment: string | null;
+    delivery_method: string; delivery_address: string | null;
   }>`
     SELECT o.id, o.reference, o.status, o.payment_status, o.quantity, o.unit_price,
            o.total_amount, o.created_at, l.title AS listing_title,
            f.farm_name, f.id AS farmer_id,
-           r.rating AS review_rating, r.comment AS review_comment
+           r.rating AS review_rating, r.comment AS review_comment,
+           o.delivery_method, o.delivery_address
       FROM orders o
       JOIN buyers   b ON b.id = o.buyer_id
       JOIN listings l ON l.id = o.listing_id
@@ -66,7 +68,9 @@ export default async function BuyerOrdersPage() {
                       · {formatDate(o.created_at)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {num(o.quantity)} × ${num(o.unit_price).toFixed(2)}
+                      {num(o.quantity)} × ${num(o.unit_price).toFixed(2)} ·{' '}
+                      {deliveryLabel(o.delivery_method)}
+                      {o.delivery_method === 'DELIVERY' && o.delivery_address ? ` to ${o.delivery_address}` : ''}
                     </p>
                   </div>
                   <div className="sm:text-right">

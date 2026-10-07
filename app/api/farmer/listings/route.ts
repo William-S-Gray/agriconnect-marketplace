@@ -3,25 +3,38 @@ import { z } from 'zod';
 import { sql } from '@/lib/db';
 import { requireRole, farmerIdForUser, canModifyListing } from '@/lib/rbac';
 import { verifyOrigin, csrfFailure } from '@/lib/csrf';
+import { readJson } from '@/lib/http';
+import { quantityProblem } from '@/lib/units';
+import { CATEGORIES, PROVINCES, UNITS } from '@/lib/mock-data';
 
 export const runtime = 'nodejs';
 
 const createSchema = z.object({
   title: z.string().trim().min(3).max(160),
   description: z.string().trim().max(2000).optional(),
-  category: z.string().trim().min(2).max(60),
+  // The same fixed lists the form offers: free text let a listing carry a
+  // category or unit the filters and the UI never show.
+  category: z.enum(CATEGORIES.map((c) => c.name) as [string, ...string[]]),
   produce_type: z.string().trim().min(2).max(60),
   quantity_kg: z.coerce.number().positive().max(1_000_000),
-  quantity_unit: z.string().trim().min(1).max(20),
+  quantity_unit: z.enum(UNITS),
   price_per_unit: z.coerce.number().nonnegative().max(1_000_000),
   min_order_qty: z.coerce.number().positive().max(1_000_000).default(1),
   // A real calendar date or blank; anything else used to reach Postgres and 500.
   harvest_date: z.union([z.literal(''), z.string().date()]).optional(),
   available_until: z.union([z.literal(''), z.string().date()]).optional(),
-  province: z.string().trim().min(2).max(80),
+  province: z.enum(PROVINCES),
   district: z.string().trim().max(80).default(''),
   is_organic: z.boolean().default(false),
   delivery_options: z.array(z.string().max(40)).max(10).default([]),
+}).superRefine((d, ctx) => {
+  for (const [field, value] of [['quantity_kg', d.quantity_kg], ['min_order_qty', d.min_order_qty]] as const) {
+    const problem = quantityProblem(value, d.quantity_unit);
+    if (problem) ctx.addIssue({ code: 'custom', path: [field], message: problem });
+  }
+  if (d.min_order_qty > d.quantity_kg) {
+    ctx.addIssue({ code: 'custom', path: ['min_order_qty'], message: 'Minimum order cannot exceed the quantity available.' });
+  }
 });
 
 /**
@@ -43,10 +56,9 @@ export async function POST(request: Request) {
   }
   if (await farmerIsSuspended(farmerId)) return suspended();
 
-  let body: unknown;
-  try { body = await request.json(); } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -88,10 +100,9 @@ export async function PATCH(request: Request) {
   const auth = await requireRole('farmer', 'admin');
   if (!auth.ok) return auth.response;
 
-  let body: unknown;
-  try { body = await request.json(); } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = read.data;
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid update.', code: 'bad_request' }, { status: 400 });
@@ -103,6 +114,12 @@ export async function PATCH(request: Request) {
       { error: 'You do not have permission to modify this listing.', code: 'forbidden' },
       { status: 403 },
     );
+  }
+
+  if (parsed.data.quantity_kg !== undefined && parsed.data.quantity_kg > 0) {
+    const [listing] = await sql<{ quantity_unit: string }>`SELECT quantity_unit FROM listings WHERE id = ${parsed.data.id}`;
+    const problem = quantityProblem(parsed.data.quantity_kg, listing?.quantity_unit ?? 'kg');
+    if (problem) return NextResponse.json({ error: problem, code: 'bad_quantity' }, { status: 400 });
   }
 
   const isAdmin = auth.user.role === 'admin';

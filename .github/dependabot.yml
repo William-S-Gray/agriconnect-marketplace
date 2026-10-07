@@ -21,6 +21,10 @@ updates:
       # TypeScript JS API that 7 dropped. Lift when both support it.
       - dependency-name: typescript
         versions: ['>=6.1']
+      # Types must match the runtime: Node 22 (package.json engines, CI).
+      # Bump this with the runtime, not on its own.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     commit-message:
       prefix: deps
 

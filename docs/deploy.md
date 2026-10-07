@@ -67,7 +67,47 @@ production `DATABASE_URL` used from a laptop.
   from Vercel Cron at 03:00 UTC once `CRON_SECRET` is set. `npm run db:prune`
   does the same by hand.
 
+## Admin accounts
+
+Admins are never created through sign-up. Create one from a shell, with the
+production `DATABASE_URL` set for that command only:
+
+```
+DATABASE_URL="$(npx neon@latest connection-string main --project-id lingering-block-14622199 --pooled)" \
+  DB_PINNED_HOST_IP= npm run admin:create -- you@example.com
+```
+
+The password is typed at a hidden prompt and must pass the sign-up policy.
+On first sign-in the admin is sent to `/settings/security` to enrol 2FA.
+
+## Backups
+
+Neon's scheduled snapshots aren't available on the current plan, so
+`.github/workflows/backup.yml` dumps production nightly (02:00 UTC), encrypts
+the dump, and keeps it 30 days as an Actions artifact. It needs two repository
+secrets:
+
+```
+npx neon@latest connection-string main --project-id lingering-block-14622199 --pooled | gh secret set PROD_DATABASE_URL
+gh secret set BACKUP_PASSPHRASE   # paste a long passphrase; keep it in your password manager
+```
+
+Without the passphrase the backups cannot be decrypted. To restore, download
+the artifact, then:
+
+```
+openssl enc -d -aes-256-cbc -pbkdf2 -in backup.dump.enc -out backup.dump
+pg_restore --clean --no-owner -d "$DATABASE_URL" backup.dump
+```
+
+Restore into a new Neon branch first and check it before pointing production
+at it.
+
 ## Monitoring
+
+`.github/workflows/uptime.yml` checks `/api/health` every 3 hours; GitHub
+emails you when a scheduled run fails. For checks every few minutes, point a
+free uptime service (UptimeRobot, Better Stack) at the same URL.
 
 Logs are one JSON object per line. Alert on:
 

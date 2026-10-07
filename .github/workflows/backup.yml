@@ -1,0 +1,44 @@
+name: Nightly database backup
+
+# Neon's scheduled snapshots aren't available on this plan, and its free
+# history window is 6 hours, so this keeps 30 days of nightly dumps.
+#
+# The dump holds user data, so it is encrypted before upload: an artifact is
+# readable by anyone with read access to the repo. Restore (docs/deploy.md):
+#   openssl enc -d -aes-256-cbc -pbkdf2 -in backup.dump.enc -out backup.dump
+#   pg_restore --clean --no-owner -d "$DATABASE_URL" backup.dump
+on:
+  schedule:
+    - cron: '0 2 * * *' # 02:00 UTC, an hour before the prune cron
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Dump and encrypt
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PROD_DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Set the PROD_DATABASE_URL and BACKUP_PASSPHRASE secrets (docs/deploy.md)."
+            exit 1
+          fi
+          # pg_dump needs a direct connection, not Neon's pooler.
+          url="${PROD_DATABASE_URL/-pooler./.}"
+          # Client version must be >= the server's (Postgres 17).
+          docker run --rm -e url="$url" postgres:17-alpine sh -c 'pg_dump -Fc "$url"' \
+            | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE \
+            > backup.dump.enc
+          test -s backup.dump.enc
+          ls -lh backup.dump.enc
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backup.dump.enc
+          retention-days: 30
+          if-no-files-found: error

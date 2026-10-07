@@ -20,7 +20,8 @@
     "ci": "./scripts/ci-local.sh",
     "db:prune": "tsx --env-file-if-exists=.env.local scripts/prune.ts",
     "test:e2e": "playwright test",
-    "qa": "./scripts/qa.sh"
+    "qa": "./scripts/qa.sh",
+    "admin:create": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/create-admin.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
@@ -71,8 +72,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
-    "react-resizable-panels": "^2.1.9",
-    "recharts": "^2.15.4",
+    "recharts": "^3.10.1",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5",
@@ -82,7 +83,7 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^26.6.4",
+    "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",

@@ -60,7 +60,7 @@ export default function BarChartPanel({
         <XAxis dataKey={xKey} tick={TICK} />
         <YAxis tick={TICK} tickFormatter={currency ? (v) => `$${v}` : undefined} />
         <Tooltip
-          formatter={currency ? (value: number) => [`$${value}`, name ?? dataKey] : undefined}
+          formatter={currency ? (value) => [`$${value}`, name ?? dataKey] : undefined}
           contentStyle={TOOLTIP_STYLE}
           labelStyle={{ color: 'var(--foreground)', fontWeight: 600 }}
         />

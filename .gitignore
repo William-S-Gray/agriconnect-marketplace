@@ -31,3 +31,8 @@ next-env.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright output
+/test-results/
+/playwright-report/
+/blob-report/

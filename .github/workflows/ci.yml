@@ -122,6 +122,25 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Browser tests against the build above. Chromium is cached under
+      # ~/.cache/ms-playwright on the persistent runner, so after the first run
+      # this step is a version check, not a download.
+      - name: Install Playwright browser
+        run: npx playwright install chromium
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Keep the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   # Fails the build if a real secret is ever committed. Cheap, and the one
   # mistake in this repo that would be expensive to undo.
   secrets:

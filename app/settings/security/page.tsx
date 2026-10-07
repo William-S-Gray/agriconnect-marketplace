@@ -5,6 +5,7 @@ import { sql } from '@/lib/db';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { MfaSettings } from './mfa-settings';
+import { PasswordSettings } from './password-settings';
 import { formatDate } from '@/lib/serialize';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,8 @@ export default async function SecuritySettingsPage() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Security</h1>
         </div>
         <p className="text-sm text-muted-foreground mb-8">{session.email}</p>
+
+        <PasswordSettings />
 
         <MfaSettings
           enabled={row?.mfa_enabled ?? false}

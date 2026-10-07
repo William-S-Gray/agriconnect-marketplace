@@ -1,42 +1,40 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 /**
- * The initial theme is applied by the inline script in index.html before first
- * paint, so this component only has to read back what that script decided and
- * write on explicit user action.
+ * The theme itself is applied before first paint by the inline script in
+ * app/layout.tsx, which sets or clears the `dark` class on <html>.
  *
- * Previously two effects raced here: the [dark] effect ran first and wrote
- * `theme: 'light'` to localStorage before the mount effect could read the saved
- * value, which silently destroyed a saved dark preference on every reload.
+ * This button therefore renders the same markup on the server and the client,
+ * and lets CSS pick the icon from that class. It used to read the class into
+ * state during render; the server had no document and rendered the moon, the
+ * client rendered the sun, and the resulting hydration error (#418) made React
+ * re-render the page — dropping the `dark` class, so dark mode only survived
+ * on pages without this button.
  */
-function getInitialTheme(): boolean {
-  if (typeof document === 'undefined') return false;
-  return document.documentElement.classList.contains('dark');
-}
-
 export function ThemeToggle() {
-  const [dark, setDark] = useState(getInitialTheme);
-
-  // Keep the DOM in sync if the theme is changed elsewhere (e.g. another tab).
+  // Follow a theme change made in another tab.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'theme' && e.newValue) setDark(e.newValue === 'dark');
+      if (e.key === 'theme' && e.newValue) {
+        document.documentElement.classList.toggle('dark', e.newValue === 'dark');
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const toggle = () => {
-    setDark(prev => {
-      const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
+    const next = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', next);
+    try {
       localStorage.setItem('theme', next ? 'dark' : 'light');
-      return next;
-    });
+    } catch {
+      /* private mode: the toggle still works for this page view */
+    }
   };
 
   return (
@@ -45,10 +43,10 @@ export function ThemeToggle() {
       size="icon"
       onClick={toggle}
       className="neo-flat h-9 w-9"
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      aria-pressed={dark}
+      aria-label="Toggle dark mode"
     >
-      {dark ? <Sun className="h-4 w-4 text-accent" /> : <Moon className="h-4 w-4 text-foreground" />}
+      <Moon className="h-4 w-4 text-foreground dark:hidden" aria-hidden />
+      <Sun className="hidden h-4 w-4 text-accent dark:block" aria-hidden />
     </Button>
   );
 }

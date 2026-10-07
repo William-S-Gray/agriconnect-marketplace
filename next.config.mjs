@@ -45,6 +45,10 @@ const nextConfig = {
    * native bindings; webpack cannot parse either.
    */
   serverExternalPackages: ['@node-rs/argon2', 'pg'],
+  // Browsers request /favicon.ico on their own, regardless of the <link> tag.
+  async redirects() {
+    return [{ source: '/favicon.ico', destination: '/favicon.svg', permanent: true }];
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

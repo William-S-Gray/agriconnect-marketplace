@@ -1,6 +1,6 @@
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { num, iso } from '@/lib/serialize';
+import { iso, num, formatDate } from '@/lib/serialize';
 import { observeDataAccess } from '@/lib/anomaly-monitor';
 import { AdminTabs } from './admin-tabs';
 
@@ -125,12 +125,12 @@ export default async function AdminPage() {
       }))}
       orders={orders.map((o) => ({
         id: o.id, reference: o.reference, status: o.status, paymentStatus: o.payment_status,
-        amount: num(o.total_amount), createdAt: iso(o.created_at).slice(0, 10),
+        amount: num(o.total_amount), createdAt: formatDate(o.created_at),
         buyerName: o.buyer_name, farmName: o.farm_name,
       }))}
       disputes={disputes.map((d) => ({
         id: d.id, reason: d.reason, description: d.description, status: d.status,
-        createdAt: iso(d.created_at).slice(0, 10), reference: d.reference, amount: num(d.amount),
+        createdAt: formatDate(d.created_at), reference: d.reference, amount: num(d.amount),
         orderId: d.order_id, orderStatus: d.order_status,
       }))}
       prices={prices.map((p) => ({

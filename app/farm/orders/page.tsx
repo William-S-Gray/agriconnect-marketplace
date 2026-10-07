@@ -1,6 +1,7 @@
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { num, iso } from '@/lib/serialize';
+import { formatDate, iso, num, paymentLabel } from '@/lib/serialize';
+import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { FarmShell } from '../farm-shell';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { OrderActions } from '@/components/OrderActions';
@@ -47,7 +48,7 @@ export default async function FarmerOrdersPage() {
                 <div>
                   <p className="font-heading font-semibold text-foreground">{o.listing_title}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {o.reference} · {o.buyer_name} · {iso(o.created_at).slice(0, 10)}
+                    {o.reference} · {o.buyer_name} · {formatDate(o.created_at)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {num(o.quantity)} × ${num(o.unit_price).toFixed(2)}
@@ -60,7 +61,10 @@ export default async function FarmerOrdersPage() {
                   <p className="text-xs text-muted-foreground">
                     You receive ${num(o.farmer_payout).toFixed(2)}
                   </p>
-                  <p className="text-xs text-accent mt-1">{o.payment_status.replace('_', ' ')}</p>
+                  <div className="mt-1 flex items-center justify-end gap-2">
+                      <OrderStatusBadge status={o.status} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Payment: {paymentLabel(o.payment_status)}</p>
                 </div>
               </div>
               <div className="mt-4">

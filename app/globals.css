@@ -1,5 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Nunito:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;800&display=swap')
-layer(base);
+/*
+ * Brand fonts are self-hosted by next/font (app/layout.tsx), which exposes them
+ * as --font-playfair / --font-nunito / --font-jetbrains. They used to come from
+ * a Google Fonts @import here, which the CSP (font-src 'self') blocked — so the
+ * site had only ever rendered in Georgia and system-ui.
+ */
 
 @import 'tailwindcss';
 
@@ -52,9 +56,9 @@ layer(base);
   --color-red-900: #7f1d1d;
   --color-gray-200: #e5e7eb;
 
-  --font-heading: 'Playfair Display', Georgia, serif;
-  --font-body: Nunito, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-heading: var(--font-playfair), Georgia, serif;
+  --font-body: var(--font-nunito), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));

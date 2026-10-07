@@ -6,27 +6,18 @@ import { Trash2, Minus, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EcoCashModal } from '@/components/EcoCashModal';
 import { toast } from 'sonner';
+import { ProduceArt } from '@/components/ProduceArt';
 
 interface CartItem {
   listingId: string;
   title: string;
+  category: string;
+  produceType: string;
   farmName: string;
   unit: string;
   quantity: number;
   pricePerUnit: number;
   maxAvailable: number;
-}
-
-const PRODUCE_EMOJIS: Record<string, string> = {
-  Tomatoes: '🍅', Maize: '🌽', Butternut: '🎃', Lettuce: '🥬', Onions: '🧅',
-  Eggs: '🥚', Milk: '🥛', Peas: '🫛',
-};
-
-function emojiFor(title: string): string {
-  const found = Object.entries(PRODUCE_EMOJIS).find(([k]) =>
-    title.toLowerCase().includes(k.toLowerCase()),
-  );
-  return found ? found[1] : '🥬';
 }
 
 /**
@@ -84,8 +75,8 @@ export function CartClient({
       <div className="space-y-4 mb-8">
         {items.map((item) => (
           <div key={item.listingId} className="neo-card p-4 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl neo-inset flex items-center justify-center shrink-0 text-3xl">
-              {emojiFor(item.title)}
+            <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+              <ProduceArt category={item.category} produceType={item.produceType} size="sm" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-heading font-semibold text-foreground text-sm line-clamp-1">{item.title}</h3>

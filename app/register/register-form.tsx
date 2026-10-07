@@ -19,9 +19,9 @@ import { toast } from 'sonner';
  * Password strength is checked by the server; the errors it returns are shown
  * verbatim rather than re-implemented here, so there is one source of truth.
  */
-export function RegisterForm() {
+export function RegisterForm({ initialRole = 'buyer' }: { initialRole?: 'farmer' | 'buyer' }) {
   const router = useRouter();
-  const [role, setRole] = useState<'farmer' | 'buyer'>('buyer');
+  const [role, setRole] = useState<'farmer' | 'buyer'>(initialRole);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 

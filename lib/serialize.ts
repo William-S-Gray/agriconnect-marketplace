@@ -80,3 +80,35 @@ export function toListing(row: ListingRow): ProduceListing {
   };
 }
 
+
+/**
+ * Dates as people read them ("7 Oct 2026"), in Zimbabwe time. Raw ISO dates
+ * ("2026-10-07") were shown throughout the dashboards. Pinned to Africa/Harare
+ * so a server running in UTC does not show yesterday's date in the evening.
+ */
+const DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Harare',
+});
+
+export function formatDate(value: unknown): string {
+  const raw = value instanceof Date ? value : typeof value === 'string' ? new Date(value) : null;
+  if (!raw || Number.isNaN(raw.getTime())) return '';
+  return DATE_FORMAT.format(raw);
+}
+
+/** Current hour in Zimbabwe, for greetings rendered on a UTC server. */
+export function harareHour(now = new Date()): number {
+  return Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Africa/Harare' }).format(now)) % 24;
+}
+
+const PAYMENT_LABELS: Record<string, string> = {
+  UNPAID: 'Unpaid', PAID: 'Paid', HELD_ESCROW: 'Held in escrow', RELEASED: 'Paid out', REFUNDED: 'Refunded',
+};
+export function paymentLabel(status: string): string {
+  return PAYMENT_LABELS[status] ?? status;
+}
+
+const DELIVERY_LABELS: Record<string, string> = { PICKUP: 'Pickup', DELIVERY: 'Delivery' };
+export function deliveryLabel(option: string): string {
+  return DELIVERY_LABELS[option] ?? option;
+}

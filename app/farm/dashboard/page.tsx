@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { DollarSign, Package, ShoppingBag, Star, Plus } from 'lucide-react';
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { num, iso } from '@/lib/serialize';
+import { formatDate, iso, num, harareHour } from '@/lib/serialize';
+import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { FarmShell } from '../farm-shell';
@@ -46,14 +47,14 @@ export default async function FarmerDashboardPage() {
      ORDER BY o.created_at DESC LIMIT 5
   `;
 
-  const greeting = timeGreeting();
+  const greeting = timeGreeting(harareHour());
 
   return (
     <FarmShell name={profile?.name ?? ''} farmName={profile?.farm_name ?? ''} status={profile?.status ?? 'PENDING'}>
       <div className="flex items-start justify-between flex-wrap gap-4 mb-8">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">
-            Good {greeting}, {profile?.name?.split(' ')[0] ?? 'farmer'} 👋
+            Good {greeting}, {profile?.name?.split(' ')[0] ?? 'farmer'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
             {profile?.farm_name}
@@ -87,18 +88,18 @@ export default async function FarmerDashboardPage() {
       {recentOrders.length === 0 ? (
         <p className="text-muted-foreground text-sm">No orders yet.</p>
       ) : (
-        <ul className="space-y-2 max-w-2xl">
+        <ul className="space-y-2">
           {recentOrders.map((o) => (
             <li key={o.id} className="neo-card p-4 flex justify-between items-center">
               <div>
                 <p className="text-foreground text-sm font-medium">{o.listing_title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {o.buyer_name} · {o.reference} · {iso(o.created_at).slice(0, 10)}
+                  {o.buyer_name} · {o.reference} · {formatDate(o.created_at)}
                 </p>
               </div>
               <div className="text-right">
                 <p className="font-mono text-foreground">${num(o.total_amount).toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">{o.status}</p>
+                <div className="mt-1"><OrderStatusBadge status={o.status} /></div>
               </div>
             </li>
           ))}
@@ -120,8 +121,7 @@ function Stat({
   );
 }
 
-function timeGreeting(): string {
-  const hour = new Date().getHours();
+function timeGreeting(hour: number): string {
   if (hour < 12) return 'morning';
   if (hour < 18) return 'afternoon';
   return 'evening';

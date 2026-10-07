@@ -7,6 +7,7 @@
  * guard so a client component importing it fails at build time.
  */
 import { Pool } from 'pg';
+import { logError } from './log';
 
 export type Role = 'farmer' | 'buyer' | 'admin';
 
@@ -44,6 +45,18 @@ function sslFor(url: URL): { rejectUnauthorized: true; servername?: string } | f
   if (isLoopback) return false;
 
   return { rejectUnauthorized: true };
+}
+
+/**
+ * An idle pooled connection that the server drops — Neon suspending an idle
+ * compute, a failover, a restart — emits 'error' on the pool. With no
+ * listener, Node treats that as an uncaught exception. The pool already
+ * discards the dead client and opens a new one on the next query, so the
+ * right response is to log it, not to let it escape.
+ */
+function withErrorHandler(p: Pool): Pool {
+  p.on('error', (error) => logError('db_idle_client_error', error));
+  return p;
 }
 
 function createPool(): Pool {
@@ -101,7 +114,7 @@ function createPool(): Pool {
 // left every later file querying a closed pool, which showed up as whole test
 // files failing at random.
 const globalForDb = globalThis as unknown as { __agriPool?: Pool };
-export const pool: Pool = globalForDb.__agriPool ?? createPool();
+export const pool: Pool = globalForDb.__agriPool ?? withErrorHandler(createPool());
 if (process.env.NODE_ENV === 'development') globalForDb.__agriPool = pool;
 
 /**

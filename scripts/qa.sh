@@ -13,12 +13,27 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PG=agri-qa-postgres; REDIS=agri-qa-redis; MAIL=agri-qa-mailpit; PORT=3990
+# Stop whatever listens on the QA port. Killing the npx wrapper's pid is not
+# enough: the Next server is a child process and survived, so a later run
+# silently probed the previous run's server.
+stop_server() {
+  local pid
+  # `|| true`: under pipefail, grep finding no listener would end the script.
+  pid=$( (ss -ltnp 2>/dev/null | grep ":$PORT " | grep -o 'pid=[0-9]*' | cut -d= -f2 | head -1) || true )
+  [[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true
+}
 cleanup() {
-  [[ -n "${SERVER_PID:-}" ]] && kill "$SERVER_PID" 2>/dev/null || true
+  stop_server
   docker rm -f "$PG" "$REDIS" "$MAIL" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 cleanup
+# docker rm -f returns before Docker's port proxy lets go of the host port, so
+# a container started straight away can fail with "address already in use".
+for _ in $(seq 1 30); do
+  ss -ltn 2>/dev/null | grep -qE ':(55442|56389|18035|11035) ' || break
+  sleep 1
+done
 
 docker run -d --name "$PG" -e POSTGRES_USER=agri -e POSTGRES_PASSWORD=agri -e POSTGRES_DB=agriconnect_qa -p 55442:5432 postgres:16-alpine >/dev/null
 docker run -d --name "$REDIS" -p 56389:6379 redis:7-alpine >/dev/null
@@ -34,8 +49,8 @@ export BASE="http://localhost:$PORT" MAILPIT_URL=http://127.0.0.1:18035
 
 npm run db:migrate --silent && npm run db:seed --silent >/dev/null
 [[ "${SKIP_BUILD:-}" == 1 ]] || npm run build --silent >/dev/null
+if ss -ltn 2>/dev/null | grep -q ":$PORT "; then echo "port $PORT is still in use"; exit 1; fi
 npx next start -p "$PORT" > /tmp/agri-qa-server.log 2>&1 &
-SERVER_PID=$!
 for _ in $(seq 1 60); do curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1 && break; sleep 1; done
 
 rm -f qa/.admin-totp

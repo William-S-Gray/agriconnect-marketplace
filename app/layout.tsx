@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
-import { Playfair_Display, Nunito, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { Providers } from './providers';
 import { DemoModeBanner } from '@/components/DemoModeBanner';
@@ -37,11 +37,23 @@ export const metadata: Metadata = {
   },
 };
 
-// Self-hosted at build time: served from /_next/static, so the CSP's
-// font-src 'self' allows them and no request leaves for Google at runtime.
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '600', '700', '800'], variable: '--font-playfair', display: 'swap' });
-const nunito = Nunito({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-nunito', display: 'swap' });
-const jetbrains = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600', '700'], variable: '--font-jetbrains', display: 'swap' });
+// Self-hosted from the @fontsource-variable packages: served from
+// /_next/static, so the CSP's font-src 'self' allows them, and nothing is
+// fetched from Google — not at runtime, and not at build time either
+// (next/font/google downloaded them during `next build`, so a network blip
+// failed the build). Variable fonts cover every weight the theme uses.
+const playfair = localFont({
+  src: '../node_modules/@fontsource-variable/playfair-display/files/playfair-display-latin-wght-normal.woff2',
+  variable: '--font-playfair', weight: '400 900', display: 'swap',
+});
+const nunito = localFont({
+  src: '../node_modules/@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2',
+  variable: '--font-nunito', weight: '200 1000', display: 'swap',
+});
+const jetbrains = localFont({
+  src: '../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2',
+  variable: '--font-jetbrains', weight: '100 800', display: 'swap',
+});
 
 export const viewport: Viewport = {
   themeColor: '#2D6C50',

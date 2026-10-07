@@ -1,6 +1,6 @@
 import 'server-only';
 import { sql } from './db';
-import { getRedis } from './redis';
+import { readyRedis } from './redis';
 import { logError } from './log';
 import {
   RedisRateLimitStore,
@@ -91,7 +91,7 @@ export async function recordAttempt(
 
   if (opts.succeeded) return;
 
-  const redis = getRedis();
+  const redis = readyRedis();
   if (!redis) return; // Postgres store counts the audit row written above.
 
   const store = new RedisRateLimitStore(redis);
@@ -131,7 +131,7 @@ export async function clearAttempts(
      WHERE kind = ${kind} AND identifier = ${value}
   `;
 
-  const redis = getRedis();
+  const redis = readyRedis();
   if (!redis) return;
   try {
     await new RedisRateLimitStore(redis).clear(storeKey(kind, 'identifier', value));
@@ -161,7 +161,7 @@ function noteRedisFailure(error: unknown): void {
 async function withStore<T>(
   run: (store: RateLimitStore) => Promise<T>,
 ): Promise<T> {
-  const redis = getRedis();
+  const redis = readyRedis();
   if (redis) {
     try {
       return await run(new RedisRateLimitStore(redis));
@@ -272,7 +272,7 @@ export async function chargeAttempt(
   if (identifier) targets.push({ column: 'identifier', value: identifier, policy: IDENTIFIER_POLICY[kind] });
   if (ip) targets.push({ column: 'ip', value: ip, policy: IP_POLICY[kind] });
 
-  const redis = getRedis();
+  const redis = readyRedis();
   const results = await Promise.all(targets.map(async ({ column, value, policy }) => {
     const key = storeKey(kind, column, value);
     if (redis) {
@@ -315,7 +315,7 @@ async function releaseCharge(ticket: AttemptTicket, how: 'refund' | 'success'): 
   } else {
     await sql`UPDATE auth_attempts SET succeeded = TRUE WHERE id = ${ticket.auditId}::bigint`;
   }
-  const redis = getRedis();
+  const redis = readyRedis();
   if (!redis || ticket.redisCharges.length === 0) return;
   try {
     const store = new RedisRateLimitStore(redis);

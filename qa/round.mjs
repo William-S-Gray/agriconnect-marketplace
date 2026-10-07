@@ -143,6 +143,13 @@ for (const qs of ['page=-5', 'page=abc', 'page=1e9', "sort='; DROP TABLE listing
   const t0 = Date.now();
   const r = await buyerA.req('PATCH', '/api/me', big);
   check('oversized body (20 MB) refused early', r.status === 413, `got ${r.status} after ${Date.now() - t0}ms`);
+  // Same body sent chunked, with no Content-Length to check up front.
+  const chunked = await fetch(`${process.env.BASE ?? 'http://localhost:3919'}/api/me`, {
+    method: 'PATCH', duplex: 'half',
+    headers: { origin: process.env.BASE ?? 'http://localhost:3919', cookie: buyerA.cookie, 'content-type': 'application/json' },
+    body: new ReadableStream({ start(c) { for (let i = 0; i < 40; i++) c.enqueue(new TextEncoder().encode('x'.repeat(512 * 1024))); c.close(); } }),
+  });
+  check('oversized chunked body refused', chunked.status === 413 || chunked.status === 400, `got ${chunked.status}`);
 }
 
 // Edge values that used to reach the database's CHECK constraints or NUL handling.

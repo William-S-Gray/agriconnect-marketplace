@@ -31,9 +31,7 @@ jobs:
           POSTGRES_USER: agri
           POSTGRES_PASSWORD: agri
           POSTGRES_DB: agriconnect_test
-        # Non-default host port, matching scripts/ci-local.sh, where 5432 is
-        # usually taken by a local Postgres.
-        ports: ['55433:5432']
+        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U agri"
           --health-interval 5s
@@ -42,7 +40,7 @@ jobs:
 
       redis:
         image: redis:7-alpine
-        ports: ['56380:6379']  # see the note on the postgres port
+        ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -55,12 +53,12 @@ jobs:
       # job scans for, and allowlisting workflow files would blind it to a real
       # credential pasted into one later.
       PGHOST: 127.0.0.1
-      PGPORT: '55433'
+      PGPORT: '5432'
       PGUSER: agri
       PGPASSWORD: agri
       PGDATABASE: agriconnect_test
       # Exercises the Redis-backed rate limiter; without it those suites skip.
-      TEST_REDIS_URL: redis://127.0.0.1:56380
+      TEST_REDIS_URL: redis://127.0.0.1:6379
       # Non-secret values: this database is destroyed with the runner.
       MFA_ENCRYPTION_KEY: ci-mfa-encryption-key-not-used-outside-ci
       APP_URL: http://localhost:3000

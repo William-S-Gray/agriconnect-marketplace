@@ -27,7 +27,7 @@ export function LazyImage({ src, alt, className, fallback, aspectRatio = '4/3', 
 
   if (!src || error) {
     return (
-      <div ref={imgRef} className={cn('bg-gradient-to-br from-primary/10 to-fresh/10 flex items-center justify-center', className)} style={{ aspectRatio }}>
+      <div ref={imgRef} className={cn('bg-linear-to-br from-primary/10 to-fresh/10 flex items-center justify-center', className)} style={{ aspectRatio }}>
         {fallback}
       </div>
     );

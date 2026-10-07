@@ -20,10 +20,10 @@ export default async function CartPage() {
   const session = await requirePageRole(['buyer'], '/buyer/cart');
 
   const items = await sql<{
-    listing_id: string; quantity: string; title: string;
+    listing_id: string; quantity: string; title: string; category: string; produce_type: string;
     price_per_unit: string; quantity_unit: string; max_available: string; farm_name: string;
   }>`
-    SELECT c.listing_id, c.quantity, l.title, l.price_per_unit,
+    SELECT c.listing_id, c.quantity, l.title, l.category, l.produce_type, l.price_per_unit,
            l.quantity_unit, l.quantity_kg AS max_available, f.farm_name
       FROM cart_items c
       JOIN buyers   b ON b.id = c.buyer_id
@@ -36,6 +36,8 @@ export default async function CartPage() {
   const cart = items.map((i) => ({
     listingId: i.listing_id,
     title: i.title,
+    category: i.category,
+    produceType: i.produce_type,
     farmName: i.farm_name,
     unit: i.quantity_unit,
     quantity: num(i.quantity),

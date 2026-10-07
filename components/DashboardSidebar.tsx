@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sprout, LogOut } from 'lucide-react';
+import { Sprout, LogOut , Leaf } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { LucideIcon } from 'lucide-react';
@@ -31,7 +31,7 @@ export function DashboardSidebar({ nav, userName, subtitle, status, onLogout }: 
       <aside className="hidden md:flex flex-col w-64 neo-flat rounded-none p-4 shrink-0">
         <div className="flex items-center justify-between mb-8 px-2">
           <Link href="/" className="flex items-center gap-2">
-            <Sprout className="h-6 w-6 text-primary" />
+            <Leaf className="h-6 w-6 text-primary" />
             <span className="font-heading text-lg font-bold text-foreground">AgriConnect</span>
           </Link>
           <ThemeToggle />

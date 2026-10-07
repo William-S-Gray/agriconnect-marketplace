@@ -1,4 +1,4 @@
-import { Leaf } from 'lucide-react';
+import { Leaf, Mail, Phone } from 'lucide-react';
 import Link from 'next/link';
 
 export function Footer() {
@@ -21,27 +21,31 @@ export function Footer() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <Link href="/browse" className="block hover:text-foreground transition-colors">Browse Produce</Link>
                 <Link href="/prices" className="block hover:text-foreground transition-colors">Market Prices</Link>
-                <Link href="/buyer/register" className="block hover:text-foreground transition-colors">Create Account</Link>
+                <Link href="/register" className="block hover:text-foreground transition-colors">Create Account</Link>
               </div>
             </div>
             <div>
               <h4 className="font-heading font-semibold mb-3 text-foreground">For Farmers</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <Link href="/farmer/register" className="block hover:text-foreground transition-colors">Register Your Farm</Link>
-                <Link href="/login" className="block hover:text-foreground transition-colors">Login</Link>
+                <Link href="/register?role=farmer" className="block hover:text-foreground transition-colors">Register Your Farm</Link>
+                <Link href="/login" className="block hover:text-foreground transition-colors">Sign in</Link>
               </div>
             </div>
             <div>
               <h4 className="font-heading font-semibold mb-3 text-foreground">Support</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>📞 +263 242 000 000</p>
-                <p>📧 support@agriconnect.co.zw</p>
+                <a href="tel:+263242000000" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                  <Phone className="h-4 w-4 shrink-0" aria-hidden /> +263 242 000 000
+                </a>
+                <a href="mailto:support@agriconnect.co.zw" className="flex items-center gap-2 hover:text-foreground transition-colors">
+                  <Mail className="h-4 w-4 shrink-0" aria-hidden /> support@agriconnect.co.zw
+                </a>
                 <p>EcoCash secured payments</p>
               </div>
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-6 text-center text-sm text-muted-foreground">
-            © 2026 AgriConnect. All rights reserved. Made in Zimbabwe 🇿🇼
+            © {new Date().getFullYear()} AgriConnect. All rights reserved. Made in Zimbabwe.
           </div>
         </div>
       </div>

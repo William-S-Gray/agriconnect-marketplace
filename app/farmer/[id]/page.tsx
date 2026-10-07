@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { MapPin, Star, Package } from 'lucide-react';
 import { sql } from '@/lib/db';
-import { toListing, num, iso, type ListingRow } from '@/lib/serialize';
+import { iso, num, toListing, type ListingRow, formatDate } from '@/lib/serialize';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { ProduceCard } from '@/components/ProduceCard';
@@ -102,7 +102,7 @@ export default async function FarmerProfilePage(props: { params: Promise<{ id: s
                     <span className="text-accent text-sm">{'★'.repeat(review.rating)}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{iso(review.created_at).slice(0, 10)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatDate(review.created_at)}</p>
                 </li>
               ))}
             </ul>

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
-import { num, iso } from '@/lib/serialize';
+import { formatDate, iso, num, paymentLabel } from '@/lib/serialize';
+import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { OrderTimeline } from '@/components/OrderTimeline';
@@ -62,17 +63,20 @@ export default async function BuyerOrdersPage() {
                       <Link href={`/farmer/${o.farmer_id}`} className="hover:text-primary">
                         {o.farm_name}
                       </Link>{' '}
-                      · {iso(o.created_at).slice(0, 10)}
+                      · {formatDate(o.created_at)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {num(o.quantity)} × ${num(o.unit_price).toFixed(2)}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="sm:text-right">
                     <p className="font-mono font-bold text-foreground">
                       ${num(o.total_amount).toFixed(2)}
                     </p>
-                    <p className="text-xs text-accent mt-1">{o.payment_status.replace('_', ' ')}</p>
+                    <div className="mt-1 flex items-center sm:justify-end gap-2">
+                      <OrderStatusBadge status={o.status} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Payment: {paymentLabel(o.payment_status)}</p>
                   </div>
                 </div>
                 <div className="mt-4">

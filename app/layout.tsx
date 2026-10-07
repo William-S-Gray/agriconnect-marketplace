@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
+import { Playfair_Display, Nunito, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { DemoModeBanner } from '@/components/DemoModeBanner';
@@ -36,13 +37,23 @@ export const metadata: Metadata = {
   },
 };
 
+// Self-hosted at build time: served from /_next/static, so the CSP's
+// font-src 'self' allows them and no request leaves for Google at runtime.
+const playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '600', '700', '800'], variable: '--font-playfair', display: 'swap' });
+const nunito = Nunito({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-nunito', display: 'swap' });
+const jetbrains = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600', '700'], variable: '--font-jetbrains', display: 'swap' });
+
 export const viewport: Viewport = {
   themeColor: '#2D6C50',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${playfair.variable} ${nunito.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         {/*
           Applies the saved theme before first paint. Inline by necessity: any

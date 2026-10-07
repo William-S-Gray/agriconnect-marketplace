@@ -1,5 +1,5 @@
 # Weekly dependency update PRs. Patch and minor bumps are grouped into one PR
-# per ecosystem so CI (on the self-hosted runner) runs once, not once per
+# per ecosystem so CI runs once (Actions minutes are metered), not once per
 # package; majors arrive individually because they need a human read.
 version: 2
 updates:

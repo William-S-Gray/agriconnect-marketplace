@@ -17,15 +17,7 @@ concurrency:
 jobs:
   verify:
     name: typecheck · lint · test · build
-    # Self-hosted: GitHub-hosted minutes are metered on a private repository,
-    # and this one exhausted them. Safe here specifically BECAUSE the repo is
-    # private — on a public repo a fork's pull request would run its own code
-    # on this machine. Do not make this repository public while these jobs
-    # target a self-hosted runner.
-    #
-    # Jobs queue rather than fail when the runner is offline, so a PR check
-    # that sits pending usually means the runner is not up.
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     # Ephemeral services rather than the shared Neon dev database: CI must not
@@ -39,10 +31,8 @@ jobs:
           POSTGRES_USER: agri
           POSTGRES_PASSWORD: agri
           POSTGRES_DB: agriconnect_test
-        # Non-default host port on purpose. A GitHub-hosted VM had nothing else
-        # listening; a self-hosted runner is somebody's workstation, and 5432
-        # is very likely already taken there — the bind would fail and the job
-        # would die before a single test ran.
+        # Non-default host port, matching scripts/ci-local.sh, where 5432 is
+        # usually taken by a local Postgres.
         ports: ['55433:5432']
         options: >-
           --health-cmd "pg_isready -U agri"
@@ -77,13 +67,7 @@ jobs:
       SIMULATED_PAYMENTS: 'true'
 
     steps:
-      # clean: true is the default, but it is load-bearing on a persistent
-      # runner in a way it never was on a throwaway VM — the workspace survives
-      # between runs, so leftovers from a previous branch would otherwise be
-      # present in this one.
       - uses: actions/checkout@v7
-        with:
-          clean: true
 
       - uses: actions/setup-node@v7
         with:
@@ -122,11 +106,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Browser tests against the build above. Chromium is cached under
-      # ~/.cache/ms-playwright on the persistent runner, so after the first run
-      # this step is a version check, not a download.
+      # Browser tests against the build above. --with-deps installs the system
+      # libraries Chromium needs on a fresh VM.
       - name: Install Playwright browser
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
 
       - name: End-to-end tests
         run: npm run test:e2e
@@ -145,7 +128,7 @@ jobs:
   # mistake in this repo that would be expensive to undo.
   secrets:
     name: no committed secrets
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7

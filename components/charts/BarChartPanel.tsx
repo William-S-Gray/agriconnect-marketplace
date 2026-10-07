@@ -21,10 +21,14 @@ export interface BarChartPanelProps {
   name?: string;
   /** Format axis ticks and tooltip values as USD. */
   currency?: boolean;
-  /** Solid bar colour. Ignored when cellColor is supplied. */
+  /** Solid bar colour. Ignored when cellColors is supplied. */
   fill?: string;
-  /** Per-bar colour, by index — for palette-coloured or highlighted bars. */
-  cellColor?: (index: number) => string;
+  /**
+   * Per-bar colours, by index, cycling when shorter than the data. An array,
+   * not a function, because server pages pass these props across the client
+   * boundary, where only serializable values are allowed.
+   */
+  cellColors?: string[];
   radius?: [number, number, number, number];
   margin?: { top: number; right: number; left: number; bottom: number };
 }
@@ -46,7 +50,7 @@ export default function BarChartPanel({
   name,
   currency = false,
   fill = '#4f7c3f',
-  cellColor,
+  cellColors,
   radius = [4, 4, 0, 0],
   margin,
 }: BarChartPanelProps) {
@@ -71,10 +75,12 @@ export default function BarChartPanel({
           dataKey={dataKey}
           name={name}
           radius={radius}
-          fill={cellColor ? undefined : fill}
+          fill={cellColors?.length ? undefined : fill}
           isAnimationActive={false}
         >
-          {cellColor && data.map((_, i) => <Cell key={i} fill={cellColor(i)} />)}
+          {cellColors?.length
+            ? data.map((_, i) => <Cell key={i} fill={cellColors[i % cellColors.length]} />)
+            : null}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

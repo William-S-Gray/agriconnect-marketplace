@@ -73,14 +73,11 @@ describe('no authentication token in client-accessible storage', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the only document.cookie use is the non-auth sidebar width preference', () => {
+  it('client code never touches document.cookie', () => {
     const offenders = readAll()
       .filter(({ text }) => /document\.cookie/.test(text))
       .map(({ file }) => file.replace(`${process.cwd()}/`, ''));
-    // shadcn's sidebar persists its open/collapsed width in a plain cookie.
-    // It carries no identity and is not read for authorization, so it is safe;
-    // documented here rather than silently excluded from the scan.
-    expect(offenders).toEqual(['components/ui/sidebar.tsx']);
+    expect(offenders).toEqual([]);
   });
 
   it('no Authorization/Bearer header scheme is used by the client', () => {

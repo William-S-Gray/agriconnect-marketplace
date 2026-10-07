@@ -92,7 +92,7 @@ export function NewListingForm({
         <div>
           <Label className="text-foreground">Category</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="neo-inset border-none"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="neo-inset border-none" aria-label="Category"><SelectValue>{category}</SelectValue></SelectTrigger>
             <SelectContent className="neo-card border-none">
               {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
@@ -112,7 +112,7 @@ export function NewListingForm({
         <div>
           <Label className="text-foreground">Unit</Label>
           <Select value={unit} onValueChange={setUnit}>
-            <SelectTrigger className="neo-inset border-none"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="neo-inset border-none" aria-label="Unit"><SelectValue>{unit}</SelectValue></SelectTrigger>
             <SelectContent className="neo-card border-none">
               {units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
             </SelectContent>
@@ -143,7 +143,7 @@ export function NewListingForm({
         <div>
           <Label className="text-foreground">Province</Label>
           <Select value={province} onValueChange={setProvince}>
-            <SelectTrigger className="neo-inset border-none"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="neo-inset border-none" aria-label="Province"><SelectValue>{province}</SelectValue></SelectTrigger>
             <SelectContent className="neo-card border-none">
               {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>

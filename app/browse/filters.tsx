@@ -19,16 +19,27 @@ export function BrowseFilters({
 }: {
   provinces: string[];
   categories: string[];
-  initial: { q: string; province: string; category: string; organic: boolean };
+  initial: { q: string; province: string; category: string; organic: boolean; sort: string };
 }) {
   const router = useRouter();
   const params = useSearchParams();
 
+  // Labels are passed to SelectValue explicitly: on its own it only shows the
+  // selected item's text after hydration, so the server-rendered page had
+  // three empty dropdowns until the JavaScript arrived.
+  const SORT_LABELS: Record<string, string> = {
+    newest: 'Newest first', price_asc: 'Price: low to high', price_desc: 'Price: high to low',
+  };
+  const provinceLabel = initial.province === 'all' ? 'All Provinces' : initial.province;
+  const categoryLabel = initial.category === 'all' ? 'All Categories' : initial.category;
+
   function update(key: string, value: string | boolean) {
     const next = new URLSearchParams(params.toString());
-    const isDefault = value === '' || value === 'all' || value === false;
+    const isDefault = value === '' || value === 'all' || value === false || (key === 'sort' && value === 'newest');
     if (isDefault) next.delete(key);
     else next.set(key, String(value));
+    // New filters mean a new result set: start again from its first page.
+    next.delete('page');
     router.push(`/browse?${next.toString()}`);
   }
 
@@ -52,7 +63,7 @@ export function BrowseFilters({
       </form>
 
       <Select value={initial.province} onValueChange={(v) => update('province', v)}>
-        <SelectTrigger className="w-44 neo-flat border-none"><SelectValue placeholder="All Provinces" /></SelectTrigger>
+        <SelectTrigger className="w-44 neo-flat border-none" aria-label="Province"><SelectValue>{provinceLabel}</SelectValue></SelectTrigger>
         <SelectContent className="neo-card border-none">
           <SelectItem value="all">All Provinces</SelectItem>
           {provinces.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -60,10 +71,19 @@ export function BrowseFilters({
       </Select>
 
       <Select value={initial.category} onValueChange={(v) => update('category', v)}>
-        <SelectTrigger className="w-44 neo-flat border-none"><SelectValue placeholder="All Categories" /></SelectTrigger>
+        <SelectTrigger className="w-44 neo-flat border-none" aria-label="Category"><SelectValue>{categoryLabel}</SelectValue></SelectTrigger>
         <SelectContent className="neo-card border-none">
           <SelectItem value="all">All Categories</SelectItem>
           {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+        </SelectContent>
+      </Select>
+
+      <Select value={initial.sort} onValueChange={(v) => update('sort', v)}>
+        <SelectTrigger className="w-48 neo-flat border-none" aria-label="Sort listings"><SelectValue>{SORT_LABELS[initial.sort] ?? SORT_LABELS.newest}</SelectValue></SelectTrigger>
+        <SelectContent className="neo-card border-none">
+          <SelectItem value="newest">Newest first</SelectItem>
+          <SelectItem value="price_asc">Price: low to high</SelectItem>
+          <SelectItem value="price_desc">Price: high to low</SelectItem>
         </SelectContent>
       </Select>
 

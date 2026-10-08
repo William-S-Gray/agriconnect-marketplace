@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "if [ \"$VERCEL_ENV\" = production ]; then npm run db:migrate; fi && next build",
+    "vercel-build": "case \"$VERCEL_ENV\" in production) npm run db:migrate ;; preview) npm run db:migrate && npm run db:seed ;; esac && next build",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",

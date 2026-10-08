@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { PhotoManager } from './photo-manager';
+
+const STATUS_LABEL: Record<string, string> = { ACTIVE: 'Live', REMOVED: 'Removed', SOLD_OUT: 'Sold out' };
 
 /**
  * A single listing with its status control.
@@ -14,10 +17,11 @@ import { toast } from 'sonner';
  * what authorises the change — it only makes it convenient.
  */
 export function ListingRow({
-  id, title, status, price, quantity, unit, views,
+  id, title, status, price, quantity, unit, views, photos, photosEnabled,
 }: {
   id: string; title: string; status: string;
   price: number; quantity: number; unit: string; views: number;
+  photos: string[]; photosEnabled: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -56,7 +60,7 @@ export function ListingRow({
       <span className="text-xs text-muted-foreground flex items-center gap-1">
         <Eye className="h-3 w-3" /> {views}
       </span>
-      <span className="text-xs text-muted-foreground w-20">{status}</span>
+      <span className="text-xs text-muted-foreground w-20">{STATUS_LABEL[status] ?? status}</span>
       <Button
         variant="outline"
         size="sm"
@@ -66,6 +70,11 @@ export function ListingRow({
       >
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : status === 'REMOVED' ? 'Republish' : 'Remove'}
       </Button>
+      {photosEnabled && (
+        <div className="basis-full">
+          <PhotoManager listingId={id} photos={photos} />
+        </div>
+      )}
     </li>
   );
 }

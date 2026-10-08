@@ -13,15 +13,18 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   return new ImageResponse(
     (
       <div
+        style={{ width: '100%', height: '100%', display: 'flex', background: '#f7f8f5' }}
+      >
+      <div
         style={{
-          width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-          justifyContent: 'space-between', padding: 72,
-          background: '#f7f8f5', color: '#18181f', fontFamily: 'sans-serif',
+          flex: 1, display: 'flex', flexDirection: 'column',
+          justifyContent: 'space-between', padding: 64,
+          color: '#18181f', fontFamily: 'sans-serif',
         }}
       >
         <div style={{ display: 'flex', fontSize: 32, fontWeight: 700, color: '#2d6a4f' }}>AgriConnect</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontSize: 64, fontWeight: 700, lineHeight: 1.1 }}>
+          <div style={{ display: 'flex', fontSize: listing?.photo ? 52 : 64, fontWeight: 700, lineHeight: 1.1 }}>
             {title.length > 70 ? `${title.slice(0, 69)}…` : title}
           </div>
           {listing && (
@@ -33,6 +36,11 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         <div style={{ display: 'flex', fontSize: 30, color: '#55606e' }}>
           {listing ? `${listing.farmName} · ${listing.place}` : 'Buy direct from verified farmers'}
         </div>
+      </div>
+      {/* The listing's first photo, when it has one. */}
+      {listing?.photo && (
+        <img src={listing.photo} alt="" width={480} height={630} style={{ objectFit: 'cover' }} />
+      )}
       </div>
     ),
     size,

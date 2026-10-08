@@ -5,6 +5,7 @@ import { sql } from '@/lib/db';
 import { num } from '@/lib/serialize';
 import { Button } from '@/components/ui/button';
 import { FarmShell } from '../farm-shell';
+import { photosEnabled } from '@/lib/listing-photos';
 import { ListingRow } from './listing-row';
 
 export const dynamic = 'force-dynamic';
@@ -20,9 +21,9 @@ export default async function MyListingsPage() {
   // this farmer's rows.
   const listings = await sql<{
     id: string; title: string; status: string; price_per_unit: string;
-    quantity_kg: string; quantity_unit: string; views_count: number;
+    quantity_kg: string; quantity_unit: string; views_count: number; photos: string[];
   }>`
-    SELECT l.id, l.title, l.status, l.price_per_unit, l.quantity_kg, l.quantity_unit, l.views_count
+    SELECT l.id, l.title, l.status, l.price_per_unit, l.quantity_kg, l.quantity_unit, l.views_count, l.photos
       FROM listings l JOIN farmers f ON f.id = l.farmer_id
      WHERE f.user_id = ${session.id}
      ORDER BY l.created_at DESC
@@ -59,6 +60,8 @@ export default async function MyListingsPage() {
               quantity={num(l.quantity_kg)}
               unit={l.quantity_unit}
               views={l.views_count}
+              photos={l.photos}
+              photosEnabled={photosEnabled()}
             />
           ))}
         </ul>

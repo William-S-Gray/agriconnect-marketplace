@@ -123,6 +123,8 @@ export default async function BrowsePage({
           </div>
         ) : (
           <>
+            {/* Cards use h3; this keeps the heading outline unbroken for screen readers. */}
+            <h2 className="sr-only">Listings</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-8">
               {listings.map((listing) => (
                 <ProduceCard key={listing.id} listing={listing} />

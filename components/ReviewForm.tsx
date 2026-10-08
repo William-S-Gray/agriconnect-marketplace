@@ -157,23 +157,30 @@ function Stars({
       role={readOnly ? 'img' : 'radiogroup'}
       aria-label={readOnly ? `Rated ${value} out of 5` : 'Star rating'}
     >
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          disabled={readOnly}
-          aria-label={`${n} star${n === 1 ? '' : 's'}`}
-          aria-checked={!readOnly && value === n}
-          role={readOnly ? undefined : 'radio'}
-          onClick={() => onSelect?.(n)}
-          onMouseEnter={() => onHover?.(n)}
-          className={readOnly ? 'cursor-default' : 'cursor-pointer transition-transform hover:scale-110'}
-        >
+      {[1, 2, 3, 4, 5].map((n) => {
+        const icon = (
           <Star
+            aria-hidden
             className={`h-5 w-5 ${n <= value ? 'text-accent fill-accent' : 'text-muted-foreground'}`}
           />
-        </button>
-      ))}
+        );
+        // Read-only stars are decoration: the container's label carries the rating.
+        if (readOnly) return <span key={n}>{icon}</span>;
+        return (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-label={`${n} star${n === 1 ? '' : 's'}`}
+            aria-checked={value === n}
+            onClick={() => onSelect?.(n)}
+            onMouseEnter={() => onHover?.(n)}
+            className="cursor-pointer transition-transform hover:scale-110"
+          >
+            {icon}
+          </button>
+        );
+      })}
     </div>
   );
 }

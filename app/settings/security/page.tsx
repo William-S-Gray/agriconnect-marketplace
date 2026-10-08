@@ -48,7 +48,7 @@ export default async function SecuritySettingsPage() {
 
         <p className="text-xs text-muted-foreground mt-8">
           Signed in as {session.role}.{' '}
-          <Link href="/" className="text-primary hover:underline">Back to site</Link>
+          <Link href="/" className="text-primary underline underline-offset-2">Back to site</Link>
         </p>
       </main>
       <Footer />

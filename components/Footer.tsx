@@ -24,7 +24,7 @@ export function Footer() {
               </p>
             </div>
             <div>
-              <h4 className="font-heading font-semibold mb-3 text-foreground">For Buyers</h4>
+              <h2 className="font-heading font-semibold mb-3 text-foreground">For Buyers</h2>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <Link href="/browse" className="block hover:text-foreground transition-colors">Browse Produce</Link>
                 <Link href="/prices" className="block hover:text-foreground transition-colors">Market Prices</Link>
@@ -32,14 +32,14 @@ export function Footer() {
               </div>
             </div>
             <div>
-              <h4 className="font-heading font-semibold mb-3 text-foreground">For Farmers</h4>
+              <h2 className="font-heading font-semibold mb-3 text-foreground">For Farmers</h2>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <Link href="/register?role=farmer" className="block hover:text-foreground transition-colors">Register Your Farm</Link>
                 <Link href="/login" className="block hover:text-foreground transition-colors">Sign in</Link>
               </div>
             </div>
             <div>
-              <h4 className="font-heading font-semibold mb-3 text-foreground">Account</h4>
+              <h2 className="font-heading font-semibold mb-3 text-foreground">Account</h2>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <Link href="/forgot-password" className="block hover:text-foreground transition-colors">Forgot password</Link>
                 <Link href="/settings/security" className="block hover:text-foreground transition-colors">Account security</Link>

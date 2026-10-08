@@ -34,7 +34,14 @@ if (!DATABASE_URL) {
 
 // The seed creates an admin whose password is printed below and committed in
 // this file. It must never run against production.
-if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+// Vercel builds always run with NODE_ENV=production, so on Vercel VERCEL_ENV
+// decides: preview builds seed their own Neon branch, production never seeds.
+// Off Vercel, NODE_ENV=production still refuses.
+const isVercelPreview = process.env.VERCEL_ENV === 'preview';
+if (
+  process.env.VERCEL_ENV === 'production' ||
+  (process.env.NODE_ENV === 'production' && !isVercelPreview)
+) {
   console.error('Refusing to seed a production environment.');
   process.exit(1);
 }

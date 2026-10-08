@@ -10,8 +10,23 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { PriceTag } from '@/components/PriceTag';
 import { AddToCart } from './add-to-cart';
 import { ProduceArt } from '@/components/ProduceArt';
+import { listingSummary } from '@/lib/listing-summary';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const listing = await listingSummary((await props.params).id);
+  if (!listing) return { title: 'Listing not found — AgriConnect' };
+  const description = `${listing.price} from ${listing.farmName}, ${listing.place}. ${listing.description}`
+    .slice(0, 200);
+  return {
+    title: `${listing.title} — AgriConnect`,
+    description,
+    openGraph: { title: listing.title, description, type: 'website' },
+    twitter: { card: 'summary_large_image', title: listing.title, description },
+  };
+}
 
 export default async function ListingDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -55,8 +70,25 @@ export default async function ListingDetailPage(props: { params: Promise<{ id: s
         </Link>
 
         <div className="grid gap-8 md:grid-cols-2 mt-6">
-          <div className="neo-card rounded-2xl aspect-4/3 overflow-hidden">
-            <ProduceArt category={listing.category} produceType={listing.produce_type} size="lg" />
+          <div>
+            <div className="neo-card rounded-2xl aspect-4/3 overflow-hidden">
+              {listing.photos.length > 0 ? (
+                <img src={listing.photos[0]} alt={listing.title} className="h-full w-full object-cover" />
+              ) : (
+                <ProduceArt category={listing.category} produceType={listing.produce_type} size="lg" />
+              )}
+            </div>
+            {listing.photos.length > 1 && (
+              <ul className="mt-3 grid grid-cols-4 gap-2">
+                {listing.photos.slice(1).map((url, i) => (
+                  <li key={url}>
+                    <a href={url} target="_blank" rel="noreferrer" className="block aspect-square overflow-hidden rounded-lg border border-border">
+                      <img src={url} alt={`${listing.title}, photo ${i + 2}`} loading="lazy" className="h-full w-full object-cover" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div>

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { MapPin, Star, Package } from 'lucide-react';
 import { sql } from '@/lib/db';
@@ -16,6 +17,21 @@ export const dynamic = 'force-dynamic';
  * their email, password hash and MFA secret — is never joined in, so no amount
  * of client inspection reveals contact details that are not meant to be public.
  */
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await props.params;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return {};
+  const [farm] = await sql<{ farm_name: string; district: string; province: string }>`
+    SELECT farm_name, district, province FROM farmers WHERE id = ${id} AND status = 'VERIFIED' LIMIT 1`;
+  if (!farm) return { title: 'Farm not found — AgriConnect' };
+  const place = [farm.district, farm.province].filter(Boolean).join(', ');
+  const description = `Fresh produce from ${farm.farm_name}, a verified farm in ${place}. Buy direct on AgriConnect.`;
+  return {
+    title: `${farm.farm_name} — AgriConnect`,
+    description,
+    openGraph: { title: farm.farm_name, description, type: 'profile' },
+  };
+}
+
 export default async function FarmerProfilePage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound();

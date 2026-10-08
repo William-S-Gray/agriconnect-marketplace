@@ -9,6 +9,7 @@ import {
   ShieldAlert, KeyRound, UserCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LazyBarChart } from '@/components/charts/LazyBarChart';
@@ -27,6 +28,7 @@ interface UserRow {
 interface FarmerRow {
   userId: string; name: string; farmName: string; province: string;
   status: string; rating: number; totalSales: number; email: string;
+  phone: string; district: string; farmSizeHa: number | null; joined: string; listings: number;
 }
 interface OrderRow {
   id: string; reference: string; status: string; paymentStatus: string;
@@ -234,11 +236,23 @@ export function AdminTabs({
                   <div className="flex-1 min-w-[200px]">
                     <p className="font-medium text-foreground text-sm">{f.farmName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {f.name} · {f.province} · ★ {f.rating.toFixed(1)}
+                      {f.name} · {[f.district, f.province].filter(Boolean).join(', ')}
+                      {f.farmSizeHa !== null && ` · ${f.farmSizeHa} ha`}
+                      {f.status === 'VERIFIED' && ` · ★ ${f.rating.toFixed(1)}`}
                     </p>
-                    <p className="text-xs text-muted-foreground">{f.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {f.email}
+                      {f.phone && (
+                        <> · <a href={`tel:${f.phone.replace(/\s/g, '')}`} className="text-primary hover:underline">{f.phone}</a></>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Joined {f.joined} · {f.listings} listing{f.listings === 1 ? '' : 's'} prepared
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground w-24">{f.status}</span>
+                  <span className="w-28">
+                    <StatusBadge type={f.status === 'VERIFIED' ? 'verified' : f.status === 'SUSPENDED' ? 'suspended' : 'pending'} />
+                  </span>
                   <div className="flex gap-2">
                     {f.status !== 'VERIFIED' && (
                       <Button

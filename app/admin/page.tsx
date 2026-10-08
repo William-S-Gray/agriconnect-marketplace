@@ -40,9 +40,11 @@ export default async function AdminPage() {
   const farmers = await sql<{
     user_id: string; name: string; farm_name: string; province: string;
     status: string; rating: string; total_sales: number; email: string;
+    phone: string; district: string; farm_size_ha: string | null; created_at: Date; listings: string;
   }>`
     SELECT f.user_id, f.name, f.farm_name, f.province, f.status, f.rating,
-           f.total_sales, u.email
+           f.total_sales, u.email, f.phone, f.district, f.farm_size_ha, f.created_at,
+           (SELECT count(*) FROM listings l WHERE l.farmer_id = f.id) AS listings
       FROM farmers f JOIN users u ON u.id = f.user_id
      ORDER BY (f.status = 'PENDING') DESC, f.name
      LIMIT 200
@@ -137,6 +139,9 @@ export default async function AdminPage() {
       farmers={farmers.map((f) => ({
         userId: f.user_id, name: f.name, farmName: f.farm_name, province: f.province,
         status: f.status, rating: num(f.rating), totalSales: f.total_sales, email: f.email,
+        phone: f.phone, district: f.district,
+        farmSizeHa: f.farm_size_ha === null ? null : num(f.farm_size_ha),
+        joined: formatDate(f.created_at), listings: Number(f.listings),
       }))}
       orders={orders.map((o) => ({
         id: o.id, reference: o.reference, status: o.status, paymentStatus: o.payment_status,

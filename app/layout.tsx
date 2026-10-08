@@ -2,21 +2,22 @@ import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import localFont from 'next/font/local';
 import './globals.css';
+import { env } from '@/lib/env';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
   // Resolves the relative og:image below to an absolute URL, which social
   // crawlers require. Set APP_URL to the deployed origin.
-  metadataBase: new URL(process.env.APP_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(env.APP_URL),
   title: 'AgriConnect — Zimbabwe Farm-to-Market Marketplace',
   description:
-    'Buy fresh produce direct from verified Zimbabwe farmers. Better prices, EcoCash secured payments, no middlemen.',
+    'Buy fresh produce direct from verified Zimbabwe farmers. Better prices, no middlemen.',
   authors: [{ name: 'AgriConnect' }],
   icons: { icon: '/favicon.svg' },
   openGraph: {
     title: "AgriConnect — Fresh From Zimbabwe's Farms",
     description:
-      'Buy fresh produce direct from verified Zimbabwe farmers. Better prices, EcoCash secured payments.',
+      'Buy fresh produce direct from verified Zimbabwe farmers. Better prices, no middlemen.',
     type: 'website',
     images: [
       {
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "AgriConnect — Fresh From Zimbabwe's Farms",
     description:
-      'Buy fresh produce direct from verified Zimbabwe farmers. Better prices, EcoCash secured payments.',
+      'Buy fresh produce direct from verified Zimbabwe farmers. Better prices, no middlemen.',
     images: ['/og-image.png'],
   },
 };

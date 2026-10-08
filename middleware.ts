@@ -47,9 +47,11 @@ export function contentSecurityPolicy(nonce: string, isProd: boolean): string {
       ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
       : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    // Listing photos are served from Vercel Blob and uploaded to its API
+    // directly from the browser (lib/listing-photos.ts).
+    "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
     "font-src 'self' data:",
-    "connect-src 'self'",
+    "connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com",
     "form-action 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

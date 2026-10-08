@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { DollarSign, Package, ShoppingBag, Star, Plus } from 'lucide-react';
+import { DollarSign, Package, ShoppingBag, Star, Plus, CheckCircle2, Clock, Circle } from 'lucide-react';
 import { requirePageRole } from '@/lib/page-guard';
 import { sql } from '@/lib/db';
 import { formatDate, iso, num, harareHour } from '@/lib/serialize';
@@ -71,15 +71,27 @@ export default async function FarmerDashboardPage() {
       {/* Buyers only see verified farms, so say so rather than leave the farmer
           wondering why nothing sells. */}
       {profile?.status === 'PENDING' && (
-        <p role="status" className="neo-card mb-6 p-4 text-sm text-foreground">
-          Your farm is awaiting verification by AgriConnect. You can prepare listings now; buyers
-          will see them as soon as your farm is verified.
-        </p>
+        <section role="status" className="neo-card mb-6 p-5">
+          <h2 className="font-semibold text-foreground">Your farm is being reviewed</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            AgriConnect checks every farm before its produce goes on sale. We may call you on the
+            number in your profile.
+          </p>
+          <ol className="mt-4 space-y-2 text-sm">
+            <Step state="done">Account created</Step>
+            <Step state="current">Farm verification by AgriConnect</Step>
+            <Step state={Number(stats?.listings ?? 0) > 0 ? 'done' : 'todo'}>
+              Add your listings — they go live the moment you are verified
+            </Step>
+          </ol>
+        </section>
       )}
       {profile?.status === 'SUSPENDED' && (
         <p role="status" className="neo-card mb-6 p-4 text-sm text-destructive">
-          Your farm is suspended, so your listings are hidden from buyers. Contact
-          support@agriconnect.co.zw.
+          Your farm is suspended, so your listings are hidden from buyers.{' '}
+          {process.env.SUPPORT_EMAIL
+            ? <>Contact <a className="underline" href={`mailto:${process.env.SUPPORT_EMAIL}`}>{process.env.SUPPORT_EMAIL}</a>.</>
+            : 'Contact AgriConnect to resolve it.'}
         </p>
       )}
 
@@ -140,4 +152,21 @@ function timeGreeting(hour: number): string {
   if (hour < 12) return 'morning';
   if (hour < 18) return 'afternoon';
   return 'evening';
+}
+
+function Step({ state, children }: { state: 'done' | 'current' | 'todo'; children: React.ReactNode }) {
+  const Icon = { done: CheckCircle2, current: Clock, todo: Circle }[state];
+  return (
+    <li className="flex items-center gap-2">
+      <Icon
+        className={`h-4 w-4 shrink-0 ${state === 'todo' ? 'text-muted-foreground' : 'text-primary'}`}
+        aria-hidden
+      />
+      <span className={state === 'todo' ? 'text-muted-foreground' : 'text-foreground'}>
+        {children}
+        {state === 'current' && <span className="sr-only"> (in progress)</span>}
+        {state === 'done' && <span className="sr-only"> (done)</span>}
+      </span>
+    </li>
+  );
 }

@@ -10,8 +10,23 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { PriceTag } from '@/components/PriceTag';
 import { AddToCart } from './add-to-cart';
 import { ProduceArt } from '@/components/ProduceArt';
+import { listingSummary } from '@/lib/listing-summary';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const listing = await listingSummary((await props.params).id);
+  if (!listing) return { title: 'Listing not found — AgriConnect' };
+  const description = `${listing.price} from ${listing.farmName}, ${listing.place}. ${listing.description}`
+    .slice(0, 200);
+  return {
+    title: `${listing.title} — AgriConnect`,
+    description,
+    openGraph: { title: listing.title, description, type: 'website' },
+    twitter: { card: 'summary_large_image', title: listing.title, description },
+  };
+}
 
 export default async function ListingDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;

@@ -9,6 +9,7 @@ export interface ListingSummary {
   price: string; // "$6.50 / head"
   farmName: string;
   place: string; // "Gweru, Midlands"
+  photo: string | null;
 }
 
 /**
@@ -20,10 +21,10 @@ export const listingSummary = cache(async (id: string): Promise<ListingSummary |
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const [row] = await sql<{
     title: string; description: string | null; price_per_unit: string; quantity_unit: string;
-    farm_name: string; district: string; province: string;
+    farm_name: string; district: string; province: string; photos: string[];
   }>`
     SELECT l.title, l.description, l.price_per_unit, l.quantity_unit,
-           f.farm_name, l.district, l.province
+           f.farm_name, l.district, l.province, l.photos
       FROM listings l JOIN farmers f ON f.id = l.farmer_id
      WHERE l.id = ${id} AND f.status = 'VERIFIED'
      LIMIT 1`;
@@ -34,5 +35,6 @@ export const listingSummary = cache(async (id: string): Promise<ListingSummary |
     price: `$${num(row.price_per_unit).toFixed(2)} / ${row.quantity_unit}`,
     farmName: row.farm_name,
     place: [row.district, row.province].filter(Boolean).join(', '),
+    photo: row.photos[0] ?? null,
   };
 });

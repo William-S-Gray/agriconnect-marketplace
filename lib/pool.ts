@@ -100,11 +100,13 @@ function createPool(): Pool {
     });
   }
 
-  return new Pool({
-    ...base,
-    connectionString: connectionString(),
-    ssl: sslFor(new URL(connectionString())),
-  });
+  // TLS is configured explicitly above (verify-full against the hostname), so
+  // the URL's sslmode is redundant — and pg logs a deprecation warning to
+  // stderr for it on every cold start, which Vercel files as an error.
+  const url = new URL(connectionString());
+  const ssl = sslFor(url);
+  url.searchParams.delete('sslmode');
+  return new Pool({ ...base, connectionString: url.toString(), ssl });
 }
 
 // One pool per process. Next.js hot-reloads modules in development, so the pool

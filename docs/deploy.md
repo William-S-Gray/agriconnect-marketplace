@@ -20,9 +20,11 @@ deployments with seeded demo data.
    code against whatever database they are given.
 3. Set the variables below with `vercel env add <NAME> production` (and
    `preview` where noted). Generate secrets with `openssl rand -base64 32`.
-4. Run the migrations against the preview database once
-   (`DATABASE_URL=<preview> npm run db:migrate`). Production builds migrate
-   on their own (see Release steps).
+4. Nothing to run by hand: production builds apply migrations, and preview
+   builds apply them and reseed the demo data (seeding is idempotent and
+   refuses production). Each preview deploy therefore resets the preview
+   database's demo data, and a PR's migration reaches the shared preview
+   branch before it merges.
 5. Add the custom domain, then set `APP_URL` to it and redeploy.
 
 ## Environment

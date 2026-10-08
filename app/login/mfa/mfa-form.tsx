@@ -73,7 +73,7 @@ export function MfaChallengeForm({ email, role }: { email: string; role: string 
             autoFocus
             required
             placeholder={useRecovery ? 'XXXXX-XXXXX' : '000000'}
-            className="neo-inset border-none text-center text-xl tracking-[0.3em] font-mono"
+            className="neo-inset text-center text-xl tracking-[0.3em] font-mono"
           />
         </div>
 

@@ -78,7 +78,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           <Label htmlFor="password" className="text-foreground">New password</Label>
           <Input
             id="password" name="password" type="password" required
-            autoComplete="new-password" className="neo-inset border-none"
+            autoComplete="new-password" className="neo-inset"
           />
           <p className="text-xs text-muted-foreground mt-1">At least 12 characters.</p>
         </div>
@@ -86,7 +86,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           <Label htmlFor="confirm" className="text-foreground">Confirm password</Label>
           <Input
             id="confirm" name="confirm" type="password" required
-            autoComplete="new-password" className="neo-inset border-none"
+            autoComplete="new-password" className="neo-inset"
           />
         </div>
 

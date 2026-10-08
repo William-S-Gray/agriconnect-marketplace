@@ -354,7 +354,7 @@ function Stat({
   return (
     <div className="neo-card p-5">
       <Icon className="h-5 w-5 text-primary mb-2" />
-      <p className="font-mono text-2xl font-bold text-foreground">{value}</p>
+      <p className="tabular-nums text-2xl font-bold text-foreground">{value}</p>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
     </div>
   );
@@ -456,7 +456,7 @@ function UserItem({ user, isSelf }: { user: UserRow; isSelf: boolean }) {
             aria-label={`New password for ${user.email}`}
             value={password} onChange={(e) => setPassword(e.target.value)}
             autoComplete="off" spellCheck={false}
-            className="neo-inset border-none h-8 text-sm font-mono flex-1 min-w-[220px]"
+            className="neo-inset h-8 text-sm font-mono flex-1 min-w-[220px]"
             placeholder="12+ characters"
           />
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setPassword(generatePassword())}>

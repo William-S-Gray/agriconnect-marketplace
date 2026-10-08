@@ -61,7 +61,7 @@ export function ListingRow({
         variant="outline"
         size="sm"
         disabled={busy}
-        className="neo-flat border-none text-xs"
+        className="neo-flat text-xs"
         onClick={() => setStatus(status === 'REMOVED' ? 'ACTIVE' : 'REMOVED')}
       >
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : status === 'REMOVED' ? 'Republish' : 'Remove'}

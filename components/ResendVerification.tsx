@@ -34,7 +34,7 @@ export function ResendVerification({ email }: { email: string }) {
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" className="neo-flat border-none w-full" onClick={resend}
+      <Button type="button" variant="outline" className="neo-flat w-full" onClick={resend}
         disabled={state === 'sending' || state === 'sent' || !email}>
         {state === 'sending' ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden /> Sending…</> : 'Send a new link'}
       </Button>

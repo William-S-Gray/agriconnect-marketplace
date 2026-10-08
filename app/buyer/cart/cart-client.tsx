@@ -28,8 +28,8 @@ interface CartItem {
  */
 export function CartClient({
   items, total, feePercent,
-  defaultAddress,
-}: { items: CartItem[]; total: number; feePercent: number; defaultAddress: string }) {
+  defaultAddress, paymentsEnabled,
+}: { items: CartItem[]; total: number; feePercent: number; defaultAddress: string; paymentsEnabled: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -97,24 +97,24 @@ export function CartClient({
             <div className="flex items-center gap-2">
               <Button
                 variant="outline" size="icon"
-                className="h-8 w-8 neo-flat border-none" aria-label="Decrease quantity"
+                className="h-8 w-8 neo-flat" aria-label="Decrease quantity"
                 disabled={busy || item.quantity - 1 < item.minOrder}
                 title={item.quantity - 1 < item.minOrder ? `Minimum order is ${item.minOrder}` : undefined}
                 onClick={() => setQuantity(item.listingId, item.quantity - 1)}
               >
                 <Minus className="h-3 w-3" />
               </Button>
-              <span className="font-mono text-sm w-10 text-center text-foreground">{item.quantity}</span>
+              <span className="tabular-nums text-sm w-10 text-center text-foreground">{item.quantity}</span>
               <Button
                 variant="outline" size="icon" disabled={busy}
-                className="h-8 w-8 neo-flat border-none" aria-label="Increase quantity"
+                className="h-8 w-8 neo-flat" aria-label="Increase quantity"
                 onClick={() => setQuantity(item.listingId, Math.min(item.maxAvailable, item.quantity + 1))}
               >
                 <Plus className="h-3 w-3" />
               </Button>
             </div>
             <div className="text-right">
-              <p className="font-mono font-bold text-foreground">
+              <p className="tabular-nums font-bold text-foreground">
                 ${(item.quantity * item.pricePerUnit).toFixed(2)}
               </p>
               <button
@@ -136,14 +136,14 @@ export function CartClient({
             <span className="text-muted-foreground">
               Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})
             </span>
-            <span className="font-mono text-foreground">${total.toFixed(2)}</span>
+            <span className="tabular-nums text-foreground">${total.toFixed(2)}</span>
           </div>
           <div className="text-xs text-muted-foreground">
             Platform fee ({feePercent}%) is deducted from the farmer payout — not added to your total.
           </div>
           <div className="border-t border-border/50 pt-2 flex justify-between items-center">
             <span className="font-semibold text-foreground">You Pay</span>
-            <span className="font-mono text-2xl font-bold text-accent">${total.toFixed(2)}</span>
+            <span className="tabular-nums text-2xl font-bold text-foreground">${total.toFixed(2)}</span>
           </div>
         </div>
 
@@ -163,15 +163,24 @@ export function CartClient({
               <label htmlFor="delivery-address" className="text-sm text-foreground">Delivery address</label>
               <textarea id="delivery-address" rows={2} maxLength={240} value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="mt-1 w-full rounded-xl neo-inset border-none bg-transparent p-3 text-sm text-foreground"
+                className="mt-1 w-full rounded-xl neo-inset bg-transparent p-3 text-sm text-foreground"
                 placeholder="Street, suburb and town" />
             </div>
           )}
         </fieldset>
 
-        <Button className="w-full btn-gold text-lg py-3 h-auto" onClick={() => setCheckoutOpen(true)} disabled={needsAddress}>
-          <Smartphone className="h-5 w-5 mr-2" aria-hidden /> Pay with EcoCash
-        </Button>
+        {paymentsEnabled ? (
+          <Button className="w-full btn-gold text-lg py-3 h-auto" onClick={() => setCheckoutOpen(true)} disabled={needsAddress}>
+            <Smartphone className="h-5 w-5 mr-2" aria-hidden /> Pay with EcoCash
+          </Button>
+        ) : (
+          // Checkout is refused server-side until a payment provider is
+          // connected; say so here rather than after the buyer fills the form.
+          <p role="status" className="rounded-lg border border-border bg-secondary/60 p-4 text-sm text-foreground">
+            <strong className="font-semibold">Online payment is coming soon.</strong>{' '}
+            <span className="text-muted-foreground">Your cart is saved, so you can check out as soon as it opens.</span>
+          </p>
+        )}
       </div>
 
       <EcoCashModal

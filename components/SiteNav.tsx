@@ -71,7 +71,7 @@ export function SiteNav({ cartCount = 0 }: { cartCount?: number }) {
           {isAuthenticated ? (
             <>
               <Link href={dashboard} className="hidden sm:block">
-                <Button variant="outline" className="neo-flat border-none text-sm">
+                <Button variant="outline" className="neo-flat text-sm">
                   {displayName.split(' ')[0] || 'Dashboard'}
                 </Button>
               </Link>
@@ -92,7 +92,7 @@ export function SiteNav({ cartCount = 0 }: { cartCount?: number }) {
           ) : (
             <>
               <Link href="/login">
-                <Button variant="outline" className="neo-flat border-none text-sm">Sign in</Button>
+                <Button variant="outline" className="neo-flat text-sm">Sign in</Button>
               </Link>
               <Link href="/register" className="hidden sm:block">
                 <Button className="neo-btn bg-primary text-primary-foreground text-sm">Register</Button>

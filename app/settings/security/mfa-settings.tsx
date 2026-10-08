@@ -156,7 +156,7 @@ export function MfaSettings({
         </ul>
 
         <div className="flex gap-3">
-          <Button variant="outline" className="neo-flat border-none" onClick={copyCodes}>
+          <Button variant="outline" className="neo-flat" onClick={copyCodes}>
             {copied ? <><Check className="h-4 w-4 mr-2" /> Copied</> : <><Copy className="h-4 w-4 mr-2" /> Copy</>}
           </Button>
           <Button className="neo-btn bg-primary text-primary-foreground flex-1" onClick={finish}>
@@ -206,7 +206,7 @@ export function MfaSettings({
             <Input
               id="code" name="code" inputMode="numeric" autoComplete="one-time-code"
               autoFocus required placeholder="000000" maxLength={6}
-              className="neo-inset border-none text-center text-xl tracking-[0.3em] font-mono"
+              className="neo-inset text-center text-xl tracking-[0.3em] font-mono"
             />
           </div>
 
@@ -214,7 +214,7 @@ export function MfaSettings({
 
           <div className="flex gap-3">
             <Button
-              type="button" variant="outline" className="neo-flat border-none"
+              type="button" variant="outline" className="neo-flat"
               onClick={() => { setStage('idle'); setChallenge(null); setError(null); }}
             >
               Cancel
@@ -244,7 +244,7 @@ export function MfaSettings({
             <Label htmlFor="password" className="text-foreground">Password</Label>
             <Input
               id="password" name="password" type="password" required
-              autoComplete="current-password" className="neo-inset border-none"
+              autoComplete="current-password" className="neo-inset"
             />
           </div>
 
@@ -252,7 +252,7 @@ export function MfaSettings({
 
           <div className="flex gap-3">
             <Button
-              type="button" variant="outline" className="neo-flat border-none"
+              type="button" variant="outline" className="neo-flat"
               onClick={() => { setStage('idle'); setError(null); }}
             >
               Cancel
@@ -287,7 +287,7 @@ export function MfaSettings({
         {enabled ? (
           <Button
             variant="outline"
-            className="neo-flat border-none text-destructive"
+            className="neo-flat text-destructive"
             onClick={() => { setStage('disabling'); setError(null); }}
           >
             Turn off

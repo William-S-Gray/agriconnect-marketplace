@@ -85,7 +85,7 @@ export function ForgotPasswordForm() {
             autoComplete="email"
             required
             placeholder="you@example.co.zw"
-            className="neo-inset border-none"
+            className="neo-inset"
           />
         </div>
 

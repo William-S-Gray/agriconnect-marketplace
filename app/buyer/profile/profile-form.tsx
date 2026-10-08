@@ -67,7 +67,7 @@ function Field({
   return (
     <div>
       <Label htmlFor={name} className="text-foreground">{label}</Label>
-      <Input id={name} name={name} className="neo-inset border-none" {...props} />
+      <Input id={name} name={name} className="neo-inset" {...props} />
     </div>
   );
 }

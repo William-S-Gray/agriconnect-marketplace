@@ -70,7 +70,7 @@ export default async function FarmerProfilePage(props: { params: Promise<{ id: s
             <div className="text-right">
               <p className="flex items-center gap-1 justify-end text-foreground">
                 <Star className="h-4 w-4 text-accent fill-accent" />
-                <span className="font-mono font-bold">{num(farmer.rating).toFixed(1)}</span>
+                <span className="tabular-nums font-bold">{num(farmer.rating).toFixed(1)}</span>
               </p>
               <p className="text-xs text-muted-foreground">{farmer.total_reviews} reviews</p>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 justify-end">

@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import localFont from 'next/font/local';
 import './globals.css';
 import { Providers } from './providers';
-import { DemoModeBanner } from '@/components/DemoModeBanner';
 
 export const metadata: Metadata = {
   // Resolves the relative og:image below to an absolute URL, which social
@@ -82,7 +81,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <Providers>
-          <DemoModeBanner />
           {children}
         </Providers>
       </body>

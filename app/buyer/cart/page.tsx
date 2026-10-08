@@ -8,6 +8,7 @@ import { SiteNav } from '@/components/SiteNav';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { CartClient } from './cart-client';
+import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,8 @@ export default async function CartPage() {
             </Link>
           </div>
         ) : (
-          <CartClient items={cart} total={total} feePercent={PLATFORM_FEE_PERCENT} defaultAddress={address} />
+          <CartClient items={cart} total={total} feePercent={PLATFORM_FEE_PERCENT} defaultAddress={address}
+            paymentsEnabled={env.SIMULATED_PAYMENTS} />
         )}
       </main>
       <Footer />

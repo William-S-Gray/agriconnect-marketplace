@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import localFont from 'next/font/local';
 import './globals.css';
 import { env } from '@/lib/env';
+import { Analytics } from '@vercel/analytics/next';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
@@ -53,6 +54,9 @@ const nunito = localFont({
 const jetbrains = localFont({
   src: '../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2',
   variable: '--font-jetbrains', weight: '100 800', display: 'swap',
+  // Only MFA codes and the admin password field use it; preloading it on every
+  // page took bandwidth from the heading font on slow connections.
+  preload: false,
 });
 
 export const viewport: Viewport = {
@@ -84,6 +88,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers>
           {children}
         </Providers>
+        {/* Cookieless page-view counts (Vercel Web Analytics). Only on Vercel:
+            elsewhere the endpoint does not exist and the debug script would
+            be blocked by the CSP. */}
+        {process.env.VERCEL && <Analytics />}
       </body>
     </html>
   );

@@ -22,6 +22,11 @@ interface Stats {
   gmv: number; revenue: number; users: number; farmers: number;
   verified: number; pending: number; listings: number; orders: number; disputes: number;
 }
+const DISPUTE_STATUS: Record<string, string> = {
+  OPEN: 'Open', INVESTIGATING: 'Investigating', RESOLVED_BUYER: 'Resolved for buyer',
+  RESOLVED_FARMER: 'Resolved for farmer', CLOSED: 'Closed',
+};
+
 interface UserRow {
   id: string; email: string; role: string; status: string; name: string;
 }
@@ -243,7 +248,7 @@ export function AdminTabs({
                     <p className="text-xs text-muted-foreground">
                       {f.email}
                       {f.phone && (
-                        <> · <a href={`tel:${f.phone.replace(/\s/g, '')}`} className="text-primary hover:underline">{f.phone}</a></>
+                        <> · <a href={`tel:${f.phone.replace(/\s/g, '')}`} className="text-primary underline underline-offset-2">{f.phone}</a></>
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -257,7 +262,7 @@ export function AdminTabs({
                     {f.status !== 'VERIFIED' && (
                       <Button
                         size="sm" disabled={busyId === f.userId}
-                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                        className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
                         onClick={() => act(f.userId, 'verify_farmer')}
                       >
                         {busyId === f.userId ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
@@ -309,7 +314,7 @@ export function AdminTabs({
                           {d.reference} · ${d.amount.toFixed(2)} · {d.createdAt}
                         </p>
                       </div>
-                      <span className="text-xs text-accent">{d.status}</span>
+                      <span className="text-xs font-medium text-badge-amber">{DISPUTE_STATUS[d.status] ?? d.status}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">{d.description}</p>
                     {/* Resolution is an order transition, so it goes through the

@@ -99,6 +99,8 @@
   --color-warning-foreground: hsl(var(--warning-foreground));
 
   --color-green-light: hsl(var(--green-light));
+  --color-badge-green: hsl(var(--badge-green));
+  --color-badge-amber: hsl(var(--badge-amber));
   --color-surface: hsl(var(--surface));
 
   --color-sidebar: hsl(var(--sidebar-background));
@@ -203,11 +205,11 @@
 }
 
 @utility badge-in-season {
-  @apply badge-status bg-green-light text-fresh;
+  @apply badge-status bg-green-light text-badge-green;
 }
 
 @utility badge-limited {
-  @apply badge-status bg-warning/10 text-warning;
+  @apply badge-status bg-warning/10 text-badge-amber;
 }
 
 @utility badge-sold-out {
@@ -215,15 +217,15 @@
 }
 
 @utility badge-organic {
-  @apply badge-status bg-green-light text-primary;
+  @apply badge-status bg-green-light text-badge-green;
 }
 
 @utility badge-verified {
-  @apply badge-status bg-green-light text-primary;
+  @apply badge-status bg-green-light text-badge-green;
 }
 
 @utility badge-pending {
-  @apply badge-status bg-accent/10 text-accent;
+  @apply badge-status bg-accent/10 text-badge-amber;
 }
 
 @utility price-display {
@@ -261,7 +263,7 @@
     --accent: 38 91% 55%;
     --accent-foreground: 0 0% 100%;
     --accent-dark: 33 78% 47%;
-    --destructive: 2 72% 50%;
+    --destructive: 2 72% 44%;
     --destructive-foreground: 0 0% 100%;
     --border: 100 10% 88%;
     --input: 100 8% 84%;
@@ -277,6 +279,9 @@
     --warning-foreground: 0 0% 100%;
     --green-light: 135 52% 88%;
     --surface: 90 20% 98%;
+    /* Badge text, measured >= 5:1 on the badge tints (WCAG AA is 4.5:1). */
+    --badge-green: 153 41% 30%;
+    --badge-amber: 30 90% 32%;
 
     /* Elevation — light mode. (The --neo-* names predate the redesign.) */
     --neo-shadow: 0 1px 2px hsl(150 20% 20% / 0.05), 0 1px 3px hsl(150 20% 20% / 0.06);
@@ -306,7 +311,7 @@
     --popover: 220 18% 16%;
     --popover-foreground: 0 0% 92%;
     --primary: 152 39% 48%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 153 45% 10%;
     --primary-dark: 153 41% 30%;
     --secondary: 220 15% 20%;
     --secondary-foreground: 0 0% 92%;
@@ -314,8 +319,8 @@
     --muted-foreground: 220 9% 65%;
     --accent: 38 91% 55%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 2 72% 45%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 2 80% 68%;
+    --destructive-foreground: 2 60% 10%;
     --border: 220 15% 22%;
     --input: 220 15% 22%;
     --ring: 152 39% 48%;
@@ -326,6 +331,8 @@
     --warning: 28 100% 49%;
     --warning-foreground: 0 0% 100%;
     --green-light: 153 30% 22%;
+    --badge-green: 150 50% 72%;
+    --badge-amber: 38 91% 55%;
     --surface: 220 20% 12%;
 
     /* Elevation — dark mode: borders carry the separation. */

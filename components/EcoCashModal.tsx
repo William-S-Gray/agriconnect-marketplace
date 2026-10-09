@@ -163,7 +163,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status</span>
-                <span className="text-green-600 font-medium">Held in Escrow ✓</span>
+                <span className="text-badge-green font-medium">Held in Escrow ✓</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">

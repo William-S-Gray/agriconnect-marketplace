@@ -60,7 +60,7 @@ export default async function FarmerOrdersPage() {
                   <p className="text-xs text-foreground mt-2">
                     <span className="font-semibold">{deliveryLabel(o.delivery_method)}</span>
                     {o.delivery_method === 'DELIVERY' && o.delivery_address ? ` to ${o.delivery_address}` : ''}
-                    {o.buyer_phone ? <> · <a href={`tel:${o.buyer_phone}`} className="text-primary hover:underline">{o.buyer_phone}</a></> : null}
+                    {o.buyer_phone ? <> · <a href={`tel:${o.buyer_phone}`} className="text-primary underline underline-offset-2">{o.buyer_phone}</a></> : null}
                   </p>
                   {o.notes && <p className="text-xs text-muted-foreground mt-1">Note: {o.notes}</p>}
                 </div>

@@ -36,7 +36,7 @@ jobs:
           test -s backup.dump.enc
           ls -lh backup.dump.enc
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ github.run_id }}
           path: backup.dump.enc

@@ -21,6 +21,8 @@ interface EcoCashModalProps {
 
 type Step = 'confirm' | 'processing' | 'success' | 'error';
 
+const PROCESSING_SECONDS = 3;
+
 export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: EcoCashModalProps) {
   const [step, setStep] = useState<Step>('confirm');
   const [failure, setFailure] = useState<string | null>(null);
@@ -41,27 +43,27 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
     if (open) setStep('confirm');
   }
 
-  // Processing countdown
+  // Processing countdown. The order is placed from the interval callback, never from inside a
+  // setState updater: React may call an updater twice (Strict Mode), which sent two checkouts,
+  // the second failing on the now-empty cart and showing "Order not placed" for a placed order.
   useEffect(() => {
     if (step !== 'processing') return;
+    let left = PROCESSING_SECONDS;
     const interval = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          // Simulate 95% success rate
-          if (Math.random() > 0.05) {
-            void onSuccessRef.current().then((failure) => {
-              setFailure(failure);
-              setStep(failure ? 'error' : 'success');
-            });
-          } else {
-            setFailure(null);
-            setStep('error');
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
+      left -= 1;
+      setCountdown(left);
+      if (left > 0) return;
+      clearInterval(interval);
+      // Simulate 95% success rate
+      if (Math.random() > 0.05) {
+        void onSuccessRef.current().then((failure) => {
+          setFailure(failure);
+          setStep(failure ? 'error' : 'success');
+        });
+      } else {
+        setFailure(null);
+        setStep('error');
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, [step]);
@@ -114,7 +116,7 @@ export function EcoCashModal({ open, onClose, amount, itemCount, onSuccess }: Ec
               </Button>
               <Button
                 className="flex-1 btn-gold"
-                onClick={() => { setCountdown(3); setStep('processing'); }}
+                onClick={() => { setCountdown(PROCESSING_SECONDS); setStep('processing'); }}
               >
                 Authorise Payment
               </Button>

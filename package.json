@@ -106,6 +106,7 @@
   "overrides": {
     "next": {
       "postcss": "^8.5.29"
-    }
+    },
+    "@vercel/cli-config": "0.3.6"
   }
 }
